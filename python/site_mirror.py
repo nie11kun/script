@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 site = 'niekun.net'
 
 windows_path = 'C:\\Users\\HJ_NK\\Documents'
-macOS_path = '/usr/marconie/download'
+macOS_path = '/Users/marconie/Public'
 
 if platform.system() == 'Windows':
     path = windows_path
@@ -20,7 +20,7 @@ else:
 logger.info('start mirror site: {}, output directory is {}'.format(site, path))
 
 try:
-    os.system('wget -o {0} -m -p -k {1}'.format(path, site))
+    os.system('cd {} && wget -m -p -k {}'.format(path, site))
 except:
     logger.info('error')
 else:
