@@ -33,7 +33,7 @@ except:
     logger.info('error')
 else:
     tempPath = tempPath + site
-    os.system('cp -a {} {}'.format(tempPath + fileInFolder, path))
+    os.system('cp -r {} {}'.format(tempPath + fileInFolder, path))
     os.system('rm -r {}'.format(tempPath))
 
     logger.info('download finished, pushing to github io')
