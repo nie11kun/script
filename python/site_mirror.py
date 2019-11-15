@@ -33,16 +33,19 @@ logger.info('sync remote github io')
 os.system('cd {} && git checkout . && git pull'.format(path))
 
 try:
+    logger.info('download start')
     os.system('cd {} && wget -m -p -k {}'.format(tempPath, site))
 except:
     logger.info('error')
 else:
-    logger.info('download finished, pushing to github io')
-
+    logger.info('download finished')
+    
+    logger.info('moving new files')
     tempPath = tempPath + slash + site
     os.system('cp -r {} {}'.format(tempPath + slash + '.', path))
     os.system('rm -r {}'.format(tempPath))
 
+    logger.info('pushing to github io')
     os.system('cd {} && git add . && git commit -m "{}" && git push'.format(path, datetime.datetime.now()))
 
     logger.info('push finished')
