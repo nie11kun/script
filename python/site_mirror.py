@@ -22,7 +22,10 @@ if platform.system() == 'Windows':
 elif platform.system() == 'Darwin':
     path = macOS_path
     slash = linux_slash
-else:
+elif platform.system() == 'Linux':
+    path = linux_path
+    slash = linux_slash
+else
     path = linux_path
     slash = linux_slash
 
