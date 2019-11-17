@@ -13,7 +13,7 @@ windows_path = 'C:\\Users\\HJ_NK\\Documents\\'
 windows_slash = '\\'
 
 macOS_path = '/Users/marconie/Public/GitHub/nie11kun.github.io/'
-linux_path = '/home/gitHub/nie11kun.github.io/'
+linux_path = '/home/github/nie11kun.github.io/'
 linux_slash = '/'
 
 if platform.system() == 'Windows':
