@@ -41,7 +41,7 @@ try:
     os.system('cd {} && wget -m -p -k {}'.format(tempPath, site))
 except:
     logger.info('error')
-else:
+finally:
     logger.info('download finished')
     
     logger.info('moving new files')
