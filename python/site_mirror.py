@@ -13,17 +13,18 @@ windows_path = 'C:\\Users\\HJ_NK\\Documents\\'
 windows_slash = '\\'
 
 macOS_path = '/Users/marconie/Public/GitHub/nie11kun.github.io/'
-macOS_slash = '/'
+linux_path = '/home/gitHub/nie11kun.github.io/'
+linux_slash = '/'
 
 if platform.system() == 'Windows':
     path = windows_path
     slash = windows_slash
 elif platform.system() == 'Darwin':
     path = macOS_path
-    slash = macOS_slash
+    slash = linux_slash
 else:
-    path = macOS_path
-    slash = macOS_slash
+    path = linux_path
+    slash = linux_slash
 
 tempPath = dirname(path)
 
