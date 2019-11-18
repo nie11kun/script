@@ -48,6 +48,7 @@ MYSQL_DATABASE_NAME[0]="blog"
 # File: /data/www/default/test.tgz
 # Directory: /data/www/default/test
 BACKUP[0]="/home/www/blog/usr"
+BACKUP[1]="/etc/nginx"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="3"
