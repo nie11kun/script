@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 site = 'niekun.net'
 
-windows_path = 'C:\\Users\\HJ_NK\\Documents\\'
+windows_path = 'C:\\Users\\HJ_NK\\Documents\\GitHub\\nie11kun.github.io\\'
 windows_slash = '\\'
 
 macOS_path = '/Users/marconie/Public/GitHub/nie11kun.github.io/'
