@@ -50,6 +50,7 @@ MYSQL_DATABASE_NAME[0]="blog"
 BACKUP[0]="/home/www/blog/usr"
 BACKUP[1]="/etc/nginx"
 BACKUP[2]="/etc/crontab"
+BACKUP[3]="/etc/init.d/rc.local"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="3"
