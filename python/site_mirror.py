@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 logger.info('start mirror site: {}, output directory is {}'.format(site, path))
 
 logger.info('sync remote github io')
+print('sync remote github io')
 
 cmd = 'cd {} && git checkout . && git pull'.format(path)
 p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
@@ -50,8 +51,10 @@ try:
     while "Already up-to-date" not in next(it): pass
 except StopIteration:
     logger.error('pull error')
+    print('pull error')
 else:
     logger.info('start download site data')
+    print('start download site data')
 
     cmd = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
@@ -61,13 +64,16 @@ else:
         while "FINISHED" not in next(it): pass
     except StopIteration:
         logger.error('mirror error')
+        print('mirror error')
     else:
         logger.info('moving new files')
+        print('moving new files')
         tempPath = tempPath + slash + site
         os.system('cp -r {} {}'.format(tempPath + slash + '.', path))
         os.system('rm -r {}'.format(tempPath))
 
         logger.info('pushing to github io')
+        print('pushing to github io')
 
         cmd = 'cd {} && git add . && git commit -m "{}" && git push'.format(path, datetime.datetime.now())
         p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
@@ -77,5 +83,7 @@ else:
             while "Everything up-to-date" not in next(it): pass
         except StopIteration:
             logger.error('push error')
+            print('push error')
         else:
             logger.info('push finished')
+            print('push finished')
