@@ -43,12 +43,12 @@ logger.info('start mirror site: {}, output directory is {}'.format(site, path))
 logger.info('sync remote github io')
 print('sync remote github io')
 
-cmd = 'cd {} && git checkout . && git pull'.format(path)
-p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-it = iter(str(p[0], 'utf-8').split('\n'))
+cmd1 = 'cd {} && git checkout . && git pull'.format(path)
+p1 = Popen(cmd1, shell=True, stdout=PIPE, stderr=PIPE).communicate()
+it1 = iter(str(p1[0], 'utf-8').split('\n'))
 
 try:
-    while "Already up-to-date" not in next(it): pass
+    while "Already up-to-date" not in next(it1): pass
 except StopIteration:
     logger.error('pull error')
     print('pull error')
@@ -56,9 +56,9 @@ else:
     logger.info('start download site data')
     print('start download site data')
 
-    cmd = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
-    p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-    it = iter(str(p[0], 'utf-8').split('\n'))
+    cmd2 = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
+    p2 = Popen(cmd2, shell=True, stdout=PIPE, stderr=PIPE).communicate()
+    it2 = iter(str(p2[0], 'utf-8').split('\n'))
 
     logger.info('moving new files')
     print('moving new files')
