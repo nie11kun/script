@@ -43,12 +43,12 @@ logger.info('start mirror site: {}, output directory is {}'.format(site, path))
 logger.info('sync remote github io')
 print('sync remote github io')
 
-cmd = 'cd {} && git checkout . && git pull'.format(path)
-p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-it = iter(str(p[0], 'utf-8').split('\n'))
+cmd1 = 'cd {} && git checkout . && git pull'.format(path)
+p1 = Popen(cmd1, shell=True, stdout=PIPE, stderr=PIPE).communicate()
+it1 = iter(str(p1[0], 'utf-8').split('\n'))
 
 try:
-    while "Already up-to-date" not in next(it): pass
+    while "Already up-to-date" not in next(it1): pass
 except StopIteration:
     logger.error('pull error')
     print('pull error')
@@ -56,12 +56,12 @@ else:
     logger.info('start download site data')
     print('start download site data')
 
-    cmd = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
-    p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-    it = iter(str(p[0], 'utf-8').split('\n'))
+    cmd2 = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
+    p2 = Popen(cmd2, shell=True, stdout=PIPE, stderr=PIPE).communicate()
+    it2 = iter(str(p2[0], 'utf-8').split('\n'))
 
     try:
-        while "Total wall clock time" not in next(it): pass
+        while "Total wall clock time" not in next(it2): pass
     except StopIteration:
         logger.error('mirror error')
         print('mirror error')
@@ -75,12 +75,12 @@ else:
         logger.info('pushing to github io')
         print('pushing to github io')
 
-        cmd = 'cd {} && git add . && git commit -m "{}" && git push'.format(path, datetime.datetime.now())
-        p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-        it = iter(str(p[0], 'utf-8').split('\n'))
+        cmd3 = 'cd {} && git add . && git commit -m "{}" && git push'.format(path, datetime.datetime.now())
+        p3 = Popen(cmd3, shell=True, stdout=PIPE, stderr=PIPE).communicate()
+        it3 = iter(str(p3[0], 'utf-8').split('\n'))
 
         try:
-            while "Everything up-to-date" not in next(it): pass
+            while "Everything up-to-date" not in next(it3): pass
         except StopIteration:
             logger.error('push error')
             print('push error')
