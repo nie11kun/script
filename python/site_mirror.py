@@ -73,11 +73,16 @@ else:
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     it = iter(str(p[0], 'utf-8').split('\n'))
 
+    logger.info('push finished')
+    print('push finished')
+    
+    '''
     try:
-        while "Everything up-to-date" not in next(it): pass
+        while "Everything up-to-date" not in next(str(p[0])): pass
     except StopIteration:
         logger.error('push error')
         print('push error')
     else:
         logger.info('push finished')
         print('push finished')
+    '''
