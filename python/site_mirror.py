@@ -61,7 +61,7 @@ else:
     it = iter(str(p[0], 'utf-8').split('\n'))
 
     try:
-        while "FINISHED" not in next(it): pass
+        while "Total wall clock time" not in next(it): pass
     except StopIteration:
         logger.error('mirror error')
         print('mirror error')
