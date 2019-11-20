@@ -65,8 +65,7 @@ else:
 
     cmd = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-    p_str = str(p[0], 'utf-8').encode('utf8')
-    p_str = p_str.decode('utf8')
+    p_str = str(p[0], 'gbk')
     it = iter(p_str.split('\n'))
 
     try:
