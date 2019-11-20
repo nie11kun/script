@@ -51,7 +51,8 @@ print('sync remote github io')
 cmd = 'cd {} && git checkout . && git pull'.format(path)
 p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
 p_str = str(p[0], 'utf-8').encode('utf8')
-it = iter(str(p[0], 'utf-8').encode('utf8').split('\n'))
+p_str = p_str.decode('utf8')
+it = iter(p_str.split('\n'))
 
 try:
     while "Already up-to-date" not in next(it): pass
