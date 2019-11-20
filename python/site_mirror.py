@@ -50,9 +50,7 @@ print('sync remote github io')
 
 cmd = 'cd {} && git checkout . && git pull'.format(path)
 p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-p_str = str(p[0], 'utf-8').encode('utf8')
-p_str = p_str.decode('utf8')
-it = iter(p_str.split('\n'))
+it = iter(str(p[0], 'utf-8').split('\n'))
 
 try:
     while "Already up-to-date" not in next(it): pass
@@ -65,16 +63,16 @@ else:
 
     cmd = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-    p_str = p[0].decode('utf-8')
-    it = iter(p_str.split('\n'))
-    print(p_str)
-    
+    it = iter(str(p[0], 'utf-8').split('\n'))
+
+    '''
     try:
         while "Total wall clock time" not in next(it): pass
     except StopIteration:
         logger.error('mirror error')
         print('mirror error')
     else:
+    '''
         logger.info('moving new files')
         print('moving new files')
         tempPath = tempPath + slash + site
@@ -86,15 +84,15 @@ else:
 
         cmd = 'cd {} && git add . && git commit -m "{}" && git push'.format(path, datetime.datetime.now())
         p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-        p_str = str(p[0], 'utf-8').encode('utf8')
-        p_str = p_str.decode('utf8')
-        it = iter(p_str.split('\n'))
+        it = iter(str(p[0], 'utf-8').split('\n'))
 
+        '''
         try:
             while "Everything up-to-date" not in next(it): pass
         except StopIteration:
             logger.error('push error')
             print('push error')
         else:
+        '''
             logger.info('push finished')
             print('push finished')
