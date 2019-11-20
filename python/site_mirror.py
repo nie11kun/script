@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- 
-import sys
+#import sys
 import platform
 import os
 import logging
@@ -7,8 +7,8 @@ import datetime
 from os.path import dirname
 from subprocess import Popen, PIPE
 
-reload(sys)
-sys.setdefaultencoding('utf-8')
+#reload(sys)
+#sys.setdefaultencoding('utf-8')
 
 site = 'niekun.net'
 
@@ -50,7 +50,8 @@ print('sync remote github io')
 
 cmd = 'cd {} && git checkout . && git pull'.format(path)
 p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-it = iter(str(p[0], 'utf-8').split('\n'))
+p_str = str(p[0], 'utf-8').encode('utf8')
+it = iter(p_str.split('\n'))
 
 try:
     while "Already up-to-date" not in next(it): pass
@@ -63,7 +64,8 @@ else:
 
     cmd = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-    it = iter(str(p[0], 'utf-8').split('\n'))
+    p_str = str(p[0], 'utf-8').encode('utf8')
+    it = iter(p_str.split('\n'))
 
     try:
         while "Total wall clock time" not in next(it): pass
@@ -82,7 +84,8 @@ else:
 
         cmd = 'cd {} && git add . && git commit -m "{}" && git push'.format(path, datetime.datetime.now())
         p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-        it = iter(str(p[0], 'utf-8').split('\n'))
+        p_str = str(p[0], 'utf-8').encode('utf8')
+        it = iter(p_str.split('\n'))
 
         try:
             while "Everything up-to-date" not in next(it): pass
