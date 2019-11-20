@@ -65,8 +65,7 @@ else:
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     p_str = str(p[0], 'utf-8')
     it = iter(str(p[0], 'utf-8').split('\n'))
-    print(p_str)
-    
+
     logger.info('moving new files')
     print('moving new files')
     tempPath = tempPath + slash + site
