@@ -66,6 +66,7 @@ else:
     cmd = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     p_str = str(p[0], 'utf-8').encode('utf8')
+    p_str = p_str.decode('utf8')
     it = iter(p_str.split('\n'))
 
     try:
@@ -86,6 +87,7 @@ else:
         cmd = 'cd {} && git add . && git commit -m "{}" && git push'.format(path, datetime.datetime.now())
         p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
         p_str = str(p[0], 'utf-8').encode('utf8')
+        p_str = p_str.decode('utf8')
         it = iter(p_str.split('\n'))
 
         try:
