@@ -67,7 +67,8 @@ else:
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     p_str = str(p[0], 'gbk')
     it = iter(p_str.split('\n'))
-
+    print(p_str)
+    
     try:
         while "Total wall clock time" not in next(it): pass
     except StopIteration:
