@@ -65,7 +65,7 @@ else:
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     p_str = p[0].decode('cp936').encode('utf-8')
     it = iter(p_str.split('\n'))
-    print(p[0])
+    print(p_str)
 
     logger.info('moving new files')
     print('moving new files')
