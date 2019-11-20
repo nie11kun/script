@@ -63,7 +63,6 @@ else:
 
     cmd = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-    p_str = str(p[0], 'utf-8')
     it = iter(str(p[0], 'utf-8').split('\n'))
 
     logger.info('moving new files')
