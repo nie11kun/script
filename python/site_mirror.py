@@ -82,9 +82,9 @@ else:
         file1 = open("/tmp/test", "w")
         #for line in p[1].decode("utf-8", 'ignore').split('\n'):
         #    file1.write("{}\n".format(line))
-        file1.write(p)
+        file1.write(p.decode("utf-8", 'ignore'))
         file1.close()
-        
+
         try:
             while "Your branch is up-to-date" not in next(it): pass
         except StopIteration:
