@@ -45,7 +45,7 @@ print('sync remote github io')
 
 cmd = 'cd {} && git checkout . && git pull'.format(path)
 p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-it = iter(str(p[0], 'utf-8').split('\n'))
+it = iter(p[0].decode("utf-8", 'ignore').split('\n'))
 
 try:
     while "Already up-to-date" not in next(it): pass
@@ -58,7 +58,7 @@ else:
 
     cmd = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-    it = iter(str(p[1], 'utf-8').split('\n'))
+    it = iter(p[1].decode("utf-8", 'ignore').split('\n'))
 
     try:
         while "FINISHED" not in next(it): pass
@@ -77,7 +77,7 @@ else:
 
         cmd = 'cd {} && git add . && git commit -m "{}" && git push && git status'.format(path, datetime.datetime.now())
         p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-        it = iter(str(p[1], 'utf-8').split('\n'))
+        it = iter(p[1].decode("utf-8", 'ignore').split('\n'))
 
         try:
             while "Your branch is up-to-date" not in next(it): pass
