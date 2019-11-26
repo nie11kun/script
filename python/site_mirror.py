@@ -80,8 +80,9 @@ else:
         it = iter(p[1].decode("utf-8", 'ignore').split('\n'))
         
         file1 = open("/tmp/test", "w")
-        for line in p[1].decode("utf-8", 'ignore').split('\n'):
-            file1.write("{}\n".format(line))
+        #for line in p[1].decode("utf-8", 'ignore').split('\n'):
+        #    file1.write("{}\n".format(line))
+        file1.write(p)
 
         try:
             while "Your branch is up-to-date" not in next(it): pass
