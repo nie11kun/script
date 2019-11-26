@@ -78,6 +78,10 @@ else:
         cmd = 'cd {} && git add . && git commit -m "{}" && git push && git status'.format(path, datetime.datetime.now())
         p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
         it = iter(p[1].decode("utf-8", 'ignore').split('\n'))
+        
+        file1 = open("/tmp/test", "w")
+        for line in p[1].decode("utf-8", 'ignore').split('\n'):
+            file1.write("{}\n".format(line))
 
         try:
             while "Your branch is up-to-date" not in next(it): pass
