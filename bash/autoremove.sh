@@ -4,6 +4,6 @@ LOCALAGE="1"
 
 cd ${LOCALDIR} || exit
 
-find ${LOCALDIR}*
+#find ${LOCALDIR}*
 
 find ${LOCALDIR}* -mtime +${LOCALAGE} -exec rm -rf {} \;
