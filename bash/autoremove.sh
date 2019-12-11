@@ -1,4 +1,4 @@
-LOCALDIR="/home/www/cloud/temp/"
+LOCALDIR="/home/www/cloud/temp/*"
 
 LOCALAGE="1"
 
