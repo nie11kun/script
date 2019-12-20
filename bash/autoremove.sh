@@ -1,6 +1,6 @@
 LOCALDIR="/home/www/cloud/temp/"
 
-LOCALAGE="1"
+LOCALAGE="3"
 
 cd ${LOCALDIR} || exit
 
