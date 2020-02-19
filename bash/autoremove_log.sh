@@ -3,6 +3,10 @@ LogFile[1]="/var/log/nginx/error.log"
 LogFile[2]="/var/log/v2ray/access.log"
 LogFile[3]="/var/log/v2ray/error.log"
 
-rm ${LogFile[*]}.*
+if [ -f ${LogFile[*]}.* ]; then
+    rm ${LogFile[*]}.*
+if
 
-cat /dev/null ${LogFile[*]}
+if [ -f ${LogFile[*]} ]; then
+    cat /dev/null ${LogFile[*]}
+if
