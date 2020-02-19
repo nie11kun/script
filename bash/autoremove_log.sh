@@ -5,8 +5,8 @@ LogFile[3]="/var/log/v2ray/error.log"
 
 if [ -f ${LogFile[*]}.* ]; then
     rm ${LogFile[*]}.*
-if
+fi
 
 if [ -f ${LogFile[*]} ]; then
     cat /dev/null ${LogFile[*]}
-if
+fi
