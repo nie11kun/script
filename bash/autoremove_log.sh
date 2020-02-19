@@ -8,5 +8,5 @@ if [ -f "${LogFile[*]}.*" ]; then
 fi
 
 if [ -f "${LogFile[*]}" ]; then
-    cat /dev/null ${LogFile[*]}
+    cat /dev/null > ${LogFile[*]}
 fi
