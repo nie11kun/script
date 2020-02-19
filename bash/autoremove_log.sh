@@ -4,6 +4,6 @@ LogDir[1]="/var/log/v2ray/"
 LogFile[0]="access.log"
 LogFile[1]="error.log"
 
-rm ${LogFile[*]}${LogFile[*]}*
+rm ${LogDir[*]}${LogFile[*]}*
 
-cat /dev/null ${LogFile[*]}${LogFile[*]}
+cat /dev/null ${LogDir[*]}${LogFile[*]}
