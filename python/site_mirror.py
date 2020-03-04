@@ -75,7 +75,7 @@ else:
         logger.info('pushing to github io')
         print('pushing to github io')
 
-        cmd = 'cd {} && git add . && git commit -m "{}" && git push && git status'.format(path, datetime.datetime.now())
+        cmd = 'cd {} && git add -A && git commit -m "{}" && git push && git status'.format(path, datetime.datetime.now())
         p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
         it = iter(p[0].decode("utf-8", 'ignore').split('\n'))
 
