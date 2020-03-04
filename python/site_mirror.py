@@ -43,12 +43,12 @@ logger.info('start mirror site: {}, output directory is {}'.format(site, path))
 logger.info('sync remote github io')
 print('sync remote github io')
 
-cmd = 'cd {} && git checkout . && git pull'.format(path)
+cmd = 'cd {} && git checkout . && git pull && git status'.format(path)
 p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
 it = iter(p[0].decode("utf-8", 'ignore').split('\n'))
 
 try:
-    while "Already up-to-date" not in next(it): pass
+    while "Your branch is up to date" not in next(it): pass
 except StopIteration:
     logger.error('pull error')
     print('pull error')
@@ -89,7 +89,7 @@ else:
         '''
 
         try:
-            while "Your branch is up-to-date" not in next(it): pass
+            while "Your branch is up to date" not in next(it): pass
         except StopIteration:
             logger.error('push error')
             print('push error')
