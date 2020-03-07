@@ -5,7 +5,7 @@ import datetime
 from os.path import dirname
 from subprocess import Popen, PIPE
 
-site = 'niekun.net'
+site = 'blog.niekun.net'
 
 windows_path = 'C:\\Users\\HJ_NK\\Documents\\GitHub\\nie11kun.github.io\\'
 windows_log_path = 'C:\\Users\\HJ_NK\\log\\site_mirror.log'
