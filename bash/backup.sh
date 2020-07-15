@@ -55,7 +55,7 @@ BACKUP[4]="/etc/init.d/rc.local"
 BACKUP[5]="/root/frp"
 
 # Number of days to store daily local backups (default 7 days)
-LOCALAGEDAILIES="3"
+LOCALAGEDAILIES="1"
 
 # Delete Googole Drive's & FTP server's remote file flag (true: delete, false: not delete)
 DELETE_REMOTE_FILE_FLG=true
