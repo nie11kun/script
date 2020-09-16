@@ -12,7 +12,7 @@ windows_log_path = 'C:\\Users\\HJ_NK\\log\\site_mirror.log'
 windows_slash = '\\'
 
 macOS_path = '/Users/marconie/Public/GitHub/nie11kun.github.io/'
-linux_path = '/home/github/nie11kun.github.io/'
+linux_path = '/home/www/nie11kun.github.io/'
 linux_log_path = '/var/log/site_morror.log'
 linux_slash = '/'
 

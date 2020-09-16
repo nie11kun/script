@@ -28,13 +28,13 @@ ENCRYPTFLG=true
 BACKUPPASS="F67rh3Pr"
 
 # Directory to store backups
-LOCALDIR="/root/backups/"
+LOCALDIR="/home/backups/"
 
 # Temporary directory used during backup creation
-TEMPDIR="/root/backups/temp/"
+TEMPDIR="/home/backups/temp/"
 
 # File to log the outcome of backups
-LOGFILE="/root/backups/backup.log"
+LOGFILE="/home/backups/backup.log"
 
 # OPTIONAL: If you want backup MySQL database, enter the MySQL root password below
 MYSQL_ROOT_PASSWORD="89Y2Csmy"
@@ -48,11 +48,11 @@ MYSQL_DATABASE_NAME[0]="blog"
 # File: /data/www/default/test.tgz
 # Directory: /data/www/default/test
 BACKUP[0]="/home/www/blog/usr"
-BACKUP[1]="/etc/nginx"
-BACKUP[2]="/etc/v2ray"
-BACKUP[3]="/etc/crontab"
-BACKUP[4]="/etc/init.d/rc.local"
-BACKUP[5]="/root/frp"
+BACKUP[1]="/opt/nginx"
+BACKUP[2]="/opt/frp"
+BACKUP[3]="/usr/local/etc/v2ray"
+BACKUP[4]="/etc/crontab"
+BACKUP[5]="/usr/lib/systemd/system"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="1"
@@ -145,7 +145,7 @@ mysql_backup() {
         log "MySQL root password not set, MySQL backup skipped"
     else
         log "MySQL dump start"
-        mysql -u root -p"${MYSQL_ROOT_PASSWORD}" 2>/dev/null <<EOF
+        mysql -u marco -p"${MYSQL_ROOT_PASSWORD}" 2>/dev/null <<EOF
 exit
 EOF
         if [ $? -ne 0 ]; then
@@ -154,7 +154,7 @@ EOF
         fi
     
         if [ "${MYSQL_DATABASE_NAME[*]}" == "" ]; then
-            mysqldump -u root -p"${MYSQL_ROOT_PASSWORD}" --all-databases > "${SQLFILE}" 2>/dev/null
+            mysqldump -u marco -p"${MYSQL_ROOT_PASSWORD}" --all-databases > "${SQLFILE}" 2>/dev/null
             if [ $? -ne 0 ]; then
                 log "MySQL all databases backup failed"
                 exit 1
@@ -167,7 +167,7 @@ EOF
             do
                 unset DBFILE
                 DBFILE="${TEMPDIR}${db}_${BACKUPDATE}.sql"
-                mysqldump -u root -p"${MYSQL_ROOT_PASSWORD}" ${db} > "${DBFILE}" 2>/dev/null
+                mysqldump -u marco -p"${MYSQL_ROOT_PASSWORD}" ${db} > "${DBFILE}" 2>/dev/null
                 if [ $? -ne 0 ]; then
                     log "MySQL database name [${db}] backup failed, please check database name is correct and try again"
                     exit 1

@@ -1,7 +1,7 @@
-rm /var/log/nginx/access.log.*
-rm /var/log/nginx/error.log.*
+rm /opt/nginx/logs/access.log.*
+rm /opt/nginx/logs/error.log.*
 
-rm frps.*.log
+rm /opt/frp/frps.*.log
 
 cat /dev/null > /var/log/v2ray/access.log
 cat /dev/null > /var/log/v2ray/error.log

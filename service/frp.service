@@ -1,0 +1,11 @@
+[Unit]
+Description=frp Service
+After=network.target nss-lookup.target
+
+[Service]
+User=nobody
+ExecStart=/opt/frp/frps -c /opt/frp/frps.ini
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
