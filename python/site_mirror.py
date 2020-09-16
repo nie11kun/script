@@ -56,7 +56,7 @@ else:
     logger.info('start download site data')
     print('start download site data')
 
-    cmd = 'cd {} && wget -m -p -k {}'.format(tempPath, site)
+    cmd = 'cd {} && wget -m -p -k --no-check-certificate {}'.format(tempPath, site)
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     it = iter(p[1].decode("utf-8", 'ignore').split('\n'))
 
