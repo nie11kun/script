@@ -48,11 +48,13 @@ MYSQL_DATABASE_NAME[0]="blog"
 # File: /data/www/default/test.tgz
 # Directory: /data/www/default/test
 BACKUP[0]="/home/www/blog/usr"
-BACKUP[1]="/opt/nginx"
-BACKUP[2]="/opt/frp"
-BACKUP[3]="/usr/local/etc/v2ray"
-BACKUP[4]="/etc/crontab"
-BACKUP[5]="/usr/lib/systemd/system"
+BACKUP[1]="/opt/nginx/conf"
+BACKUP[2]="/opt/nginx/niekun.net"
+BACKUP[3]="/opt/nginx/users"
+BACKUP[4]="/opt/frp/frps.ini"
+BACKUP[5]="/usr/local/etc/v2ray"
+BACKUP[6]="/etc/crontab"
+BACKUP[7]="/usr/lib/systemd/system"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="1"
