@@ -52,9 +52,10 @@ BACKUP[1]="/opt/nginx/conf"
 BACKUP[2]="/opt/nginx/niekun.net"
 BACKUP[3]="/opt/nginx/users"
 BACKUP[4]="/opt/frp/frps.ini"
-BACKUP[5]="/usr/local/etc/v2ray"
-BACKUP[6]="/etc/crontab"
-BACKUP[7]="/usr/lib/systemd/system"
+BACKUP[5]="/opt/aria2/aria2.conf"
+BACKUP[6]="/usr/local/etc/v2ray"
+BACKUP[7]="/etc/crontab"
+BACKUP[8]="/usr/lib/systemd/system"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="1"
