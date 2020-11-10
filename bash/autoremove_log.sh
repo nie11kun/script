@@ -1,5 +1,5 @@
-rm /opt/nginx/logs/access.log.*
-rm /opt/nginx/logs/error.log.*
+cat /dev/null > /opt/nginx/logs/access.log
+cat /dev/null > /opt/nginx/logs/error.log
 
 rm /opt/frp/frps.*.log
 
