@@ -1,0 +1,32 @@
+    server {
+        listen         2226;
+        server_name    localhost;
+        location / {
+
+            auth_basic           "Restricted Access";
+            auth_basic_user_file /opt/htpasswd/passwd;
+
+            root /home/marco/webdav;
+            client_body_temp_path /opt/nginx/client_body_temp;
+
+            dav_access      group:rw  all:r;
+            dav_methods PUT DELETE MKCOL COPY MOVE;
+            dav_ext_methods PROPFIND OPTIONS LOCK UNLOCK;
+            dav_ext_lock zone=foo;
+            create_full_put_path on;
+
+            if ($request_method = MKCOL) {
+                rewrite ^(.*[^/])$ $1/ break;
+            }
+
+            if (-d $request_filename) {
+                rewrite ^(.*[^/])$ $1/;
+                set $md /;
+            }
+
+            set $x $http_destination$request_method;
+            if ($x ~ [^/]MOVE) {
+                more_set_input_headers -r "Destination: ${http_destination}${md}";
+            }
+        }
+    }
