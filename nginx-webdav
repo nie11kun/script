@@ -1,32 +1,62 @@
-    server {
-        listen         2226;
-        server_name    localhost;
-        location / {
+dav_ext_lock_zone zone=foo:10m;
+server {
+    listen        443 ssl http2;
+    listen        [::]:443 ssl http2;
+    server_name   webdav.xxx.xxx;
+    include       my-server/ssl;
 
-            auth_basic           "Restricted Access";
-            auth_basic_user_file /opt/htpasswd/passwd;
+    # 限制访问
+    auth_basic           "Restricted Access";
+    auth_basic_user_file ../users/.adminpasswd;
 
-            root /home/marco/webdav;
-            client_body_temp_path /opt/nginx/client_body_temp;
+    # webdav 目录
+    root /home/www/webdav;
+    client_body_temp_path /opt/nginx/client_body_temp;
 
-            dav_access      group:rw  all:r;
-            dav_methods PUT DELETE MKCOL COPY MOVE;
-            dav_ext_methods PROPFIND OPTIONS LOCK UNLOCK;
-            dav_ext_lock zone=foo;
-            create_full_put_path on;
+    # webdav 设置
+    dav_access      user:rw  group:rw  all:r;
+    dav_methods PUT DELETE MKCOL COPY MOVE;
+    dav_ext_methods PROPFIND OPTIONS LOCK UNLOCK;
+    dav_ext_lock zone=foo;
+    create_full_put_path on;
 
-            if ($request_method = MKCOL) {
-                rewrite ^(.*[^/])$ $1/ break;
-            }
+    # 优化大文件上传
+    send_timeout 3600;
+    client_body_timeout 3600;
+    keepalive_timeout 3600;
+    lingering_timeout 3600;
+    client_max_body_size 2G;
 
-            if (-d $request_filename) {
-                rewrite ^(.*[^/])$ $1/;
-                set $md /;
-            }
+    location / {
+        # 创建文件夹操作时结尾添加斜杠
+        if ($request_method = MKCOL) {
+            rewrite ^(.*[^/])$ $1/ break;
+        }
 
-            set $x $http_destination$request_method;
-            if ($x ~ [^/]MOVE) {
-                more_set_input_headers -r "Destination: ${http_destination}${md}";
-            }
+        # 移动文件夹操作时结尾添加斜杠
+        if (-d $request_filename) {
+            rewrite ^(.*[^/])$ $1/;
+            set $md /;
+        }
+
+        set $x $http_destination$request_method;
+        if ($x ~ [^/]MOVE) {
+            more_set_input_headers -r "Destination: ${http_destination}${md}";
         }
     }
+
+    # 拒绝 Windows 或 macos 多余文件上传到 webdav 路径
+    location ~ \.(_.*|DS_Store|Spotlight-V100|TemporaryItems|Trashes|hidden|localized)$ {
+        access_log  off;
+        error_log   off;
+
+        if ($request_method = PUT) {
+            return 403;
+        }
+        return 404;
+    }
+
+    location ~ \.metadata_never_index$ {
+        return 200 "Don't index this drive, Finder!";
+    }
+}
