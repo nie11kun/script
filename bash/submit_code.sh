@@ -1,0 +1,7 @@
+telegram-cli -W -e "msg @LvanLamCommitCodeBot /jdcrazyjoy wIgzEM1_9ferfc3eWGgXhA=="
+telegram-cli -W -e "msg @LvanLamCommitCodeBot /jdzz S4KQmQR9CsAo"
+telegram-cli -W -e "msg @TuringLabbot /submit_activity_codes bean wcc4dypma3lqgyfoff23i4gzai"
+telegram-cli -W -e "msg @TuringLabbot /submit_activity_codes farm 77d80c6b738948a0a5cc9f01b34aca2d"
+telegram-cli -W -e "msg @TuringLabbot /submit_activity_codes pet MTE1NDQ5OTUwMDAwMDAwNDY3NTc5ODE="
+telegram-cli -W -e "msg @TuringLabbot /submit_activity_codes ddfactory T0114KQmQR9CsAoCjVWnYaS5kRrbA"
+telegram-cli -W -e "msg @TuringLabbot /submit_activity_codes jxfactory 0VAqzh6CGrQDSTqgK7yu_Q=="
