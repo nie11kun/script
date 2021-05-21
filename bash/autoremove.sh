@@ -1,3 +1,5 @@
+#!/bin/bash
+
 LOCALDIR="/home/www/cloud/temp/"
 
 LOCALAGE="3"
