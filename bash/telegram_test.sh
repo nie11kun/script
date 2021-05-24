@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 LOGFILE="/home/log/submit_code.log"
 

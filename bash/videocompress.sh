@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 target_video_size_MB="$2"
 origin_duration_s=$(ffprobe -v error -show_streams -select_streams a "$1" | grep -Po "(?<=^duration\=)\d*\.\d*")

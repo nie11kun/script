@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 cat /dev/null > /opt/nginx/logs/access.log
 cat /dev/null > /opt/nginx/logs/error.log
