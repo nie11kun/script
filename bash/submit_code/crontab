@@ -1,3 +1,5 @@
+57,58  23    *  *  * root bash   /home/script/script/bash/submit_code/load_dialog.sh
+
 #LvanLamCommitCodeBot long
 0   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdcash.sh
 0   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdcrazyjoy.sh
