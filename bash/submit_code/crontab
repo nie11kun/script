@@ -1,0 +1,18 @@
+#LvanLamCommitCodeBot long
+0   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdcash.sh
+0   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdcrazyjoy.sh
+0   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdzz.sh
+
+#TuringLabbot long
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/bean.sh
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/ddfactory.sh
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/farm.sh
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/health.sh
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/jxcfd.sh
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/jxfactory.sh
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/pet.sh
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/sgmh.sh
+
+#TuringLabbot daily
+10  0    *  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/daily/carnivalcity.sh
+10  0    *  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/daily/city.sh
