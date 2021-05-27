@@ -8,4 +8,4 @@ LOGFILE="/home/log/submit_code.log"
 
 CODE=$(awk -F】 '/京东手机狂欢城好友互助码/ {print $NF}' /opt/jd_scripts/logs/jd_carnivalcity.log  | tail -1)
 
-telegram-cli -e "msg @TuringLabbot /submit_activity_codes carnivalcity ${CODE}"
+telegram-cli -W -e "msg @TuringLabbot /submit_activity_codes carnivalcity ${CODE}"
