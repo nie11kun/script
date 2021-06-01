@@ -1,20 +1,18 @@
-57,58  23    *  *  * root bash   /home/script/script/bash/submit_code/load_dialog.sh
-
 #LvanLamCommitCodeBot long
-0   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdcash.sh
-0   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdcrazyjoy.sh
-0   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdzz.sh
+10   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdcash.sh > /dev/null 2>&1
+10   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdcrazyjoy.sh > /dev/null 2>&1
+10   0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/commitcodebot/long/jdzz.sh > /dev/null 2>&1
 
 #TuringLabbot long
-10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/bean.sh
-10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/ddfactory.sh
-10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/farm.sh
-10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/health.sh
-10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/jxcfd.sh
-10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/jxfactory.sh
-10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/pet.sh
-10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/sgmh.sh
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/bean.sh > /dev/null 2>&1
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/ddfactory.sh > /dev/null 2>&1
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/farm.sh > /dev/null 2>&1
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/health.sh > /dev/null 2>&1
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/jxcfd.sh > /dev/null 2>&1
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/jxfactory.sh > /dev/null 2>&1
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/pet.sh > /dev/null 2>&1
+10  0    1,8,16,24  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/long/sgmh.sh > /dev/null 2>&1
 
 #TuringLabbot daily
-10  0    *  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/daily/carnivalcity.sh
-10  0    *  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/daily/city.sh
+10  0    *  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/daily/carnivalcity.sh > /dev/null 2>&1
+10  0    *  *  * root bash   /home/script/script/bash/submit_code/turinglabbot/daily/city.sh > /dev/null 2>&1
