@@ -64,6 +64,9 @@ LOCALAGEDAILIES="1"
 # Delete Googole Drive's & FTP server's remote file flag (true: delete, false: not delete)
 DELETE_REMOTE_FILE_FLG=true
 
+# Upload to google drive flag (true: upload, false: not upload)
+GOOGLE_DRIVE_FLG=true
+
 # Upload to FTP server flag (true: upload, false: not upload)
 FTP_FLG=false
 
@@ -229,7 +232,7 @@ start_backup() {
 # For x86_64: wget -O /usr/bin/gdrive http://dl.lamp.sh/files/gdrive-linux-x64; chmod +x /usr/bin/gdrive
 # For i386: wget -O /usr/bin/gdrive http://dl.lamp.sh/files/gdrive-linux-386; chmod +x /usr/bin/gdrive
 gdrive_upload() {
-    if ${GDRIVE_COMMAND}; then
+    if ${GOOGLE_DRIVE_FLG} && ${GDRIVE_COMMAND}; then
         log "Tranferring backup file to Google Drive"
         gdrive upload --no-progress ${OUT_FILE} >> ${LOGFILE}
         if [ $? -ne 0 ]; then
