@@ -60,6 +60,7 @@ BACKUP[6]="/usr/local/etc/v2ray"
 BACKUP[7]="/etc/crontab"
 BACKUP[8]="/usr/lib/systemd/system"
 BACKUP[9]="/root/.bashrc"
+BACKUP[10]="/etc/env_addon"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="1"
