@@ -25,7 +25,17 @@ ENCRYPTFLG=true
 # The password used to encrypt the backup
 # To decrypt backups made by this script, run the following command:
 # openssl enc -aes256 -in [encrypted backup] -out decrypted_backup.tgz -pass pass:[backup password] -d -md sha1
-BACKUPPASS="F67rh3Pr"
+BACKUPPASS="${BACKUP_ENCRYPT_PASSWORD}"
+
+# mysql username
+MYSQL_ROOT_NAME="${BACKUP_MYSQL_USER_NAME}"
+
+# OPTIONAL: If you want backup MySQL database, enter the MySQL root password below
+MYSQL_ROOT_PASSWORD="${BACKUP_MYSQL_USER_PASSWORD}"
+
+# Below is a list of MySQL database name that will be backed up
+# If you want backup ALL databases, leave it blank.
+MYSQL_DATABASE_NAME[0]="blog"
 
 # Directory to store backups
 LOCALDIR="/home/backups/"
@@ -35,16 +45,6 @@ TEMPDIR="/home/backups/temp/"
 
 # File to log the outcome of backups
 LOGFILE="/home/backups/backup.log"
-
-# mysql username
-MYSQL_ROOT_NAME="marco"
-
-# OPTIONAL: If you want backup MySQL database, enter the MySQL root password below
-MYSQL_ROOT_PASSWORD="89Y2Csmy"
-
-# Below is a list of MySQL database name that will be backed up
-# If you want backup ALL databases, leave it blank.
-MYSQL_DATABASE_NAME[0]="blog"
 
 # Below is a list of files and directories that will be backed up in the tar backup
 # For example:
