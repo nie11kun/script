@@ -16,5 +16,11 @@ cd "C:\Users\Marco Nie\Application\CloudflareST_windows_amd64"
 ".\CloudflareST.exe" -p 0 -f "C:\Users\Marco Nie\Development\VPN\cloudflare\Google Cloud.txt" -o "result-google.csv"
 ".\CloudflareST.exe" -p 0 -f "C:\Users\Marco Nie\Development\VPN\cloudflare\Amazon Web Services - 中国 香港.txt" -o "result-amazon.csv"
 
-start notepad "result-google.csv"
-start notepad "result-amazon.csv"
+:: start notepad "result-google.csv"
+:: start notepad "result-amazon.csv"
+
+type "result-google.csv"
+type "result-amazon.csv"
+
+for /f "delims=," %%a in (' type "result-google.csv" ') do ping -n 1 %%a >nul && (echo %%a ok)
+for /f "delims=," %%a in (' type "result-amazon.csv" ') do ping -n 1 %%a >nul && (echo %%a ok)
