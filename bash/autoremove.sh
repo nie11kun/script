@@ -1,4 +1,5 @@
 #!/bin/sh
+# 删除超过 3 天的临时文件
 
 LOCALDIR="/home/www/cloud/temp/"
 

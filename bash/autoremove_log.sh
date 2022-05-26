@@ -1,4 +1,5 @@
 #!/bin/sh
+# 删除日志文件
 
 cat /dev/null > /opt/nginx/logs/access.log
 cat /dev/null > /opt/nginx/logs/error.log
