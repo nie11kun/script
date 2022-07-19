@@ -25,13 +25,13 @@ ENCRYPTFLG=true
 # The password used to encrypt the backup
 # To decrypt backups made by this script, run the following command:
 # openssl enc -aes256 -in [encrypted backup] -out decrypted_backup.tgz -pass pass:[backup password] -d -md sha1
-BACKUPPASS="${BACKUP_ENCRYPT_PASSWORD}"
+BACKUPPASS=${BACKUP_ENCRYPT_PASSWORD}
 
 # mysql username
-MYSQL_ROOT_NAME="${BACKUP_MYSQL_USER_NAME}"
+MYSQL_ROOT_NAME=${BACKUP_MYSQL_USER_NAME}
 
 # OPTIONAL: If you want backup MySQL database, enter the MySQL root password below
-MYSQL_ROOT_PASSWORD="${BACKUP_MYSQL_USER_PASSWORD}"
+MYSQL_ROOT_PASSWORD=${BACKUP_MYSQL_USER_PASSWORD}
 
 # Below is a list of MySQL database name that will be backed up
 # If you want backup ALL databases, leave it blank.
@@ -164,7 +164,7 @@ mysql_backup() {
         log "MySQL root password not set, MySQL backup skipped"
     else
         log "MySQL dump start"
-        mysql -u ${MYSQL_ROOT_NAME} -p"${MYSQL_ROOT_PASSWORD}" 2>/dev/null <<EOF
+        mysql -u ${MYSQL_ROOT_NAME} -p${MYSQL_ROOT_PASSWORD} 2>/dev/null <<EOF
 exit
 EOF
         if [ $? -ne 0 ]; then
@@ -173,7 +173,7 @@ EOF
         fi
     
         if [ "${MYSQL_DATABASE_NAME[*]}" == "" ]; then
-            mysqldump -u ${MYSQL_ROOT_NAME} -p"${MYSQL_ROOT_PASSWORD}" --all-databases > "${SQLFILE}" 2>/dev/null
+            mysqldump -u ${MYSQL_ROOT_NAME} -p${MYSQL_ROOT_PASSWORD} --all-databases > "${SQLFILE}" 2>/dev/null
             if [ $? -ne 0 ]; then
                 log "MySQL all databases backup failed"
                 exit 1
@@ -186,7 +186,7 @@ EOF
             do
                 unset DBFILE
                 DBFILE="${TEMPDIR}${db}_${BACKUPDATE}.sql"
-                mysqldump -u ${MYSQL_ROOT_NAME} -p"${MYSQL_ROOT_PASSWORD}" ${db} > "${DBFILE}" 2>/dev/null
+                mysqldump -u ${MYSQL_ROOT_NAME} -p${MYSQL_ROOT_PASSWORD} ${db} > "${DBFILE}" 2>/dev/null
                 if [ $? -ne 0 ]; then
                     log "MySQL database name [${db}] backup failed, please check database name is correct and try again"
                     exit 1
@@ -214,7 +214,7 @@ start_backup() {
     # Encrypt tar file
     if ${ENCRYPTFLG}; then
         log "Encrypt backup file start"
-        openssl enc -aes-256-cbc -md sha512 -pbkdf2 -iter 1000 -pass pass:"${BACKUPPASS}" -in "${TARFILE}" -out "${ENC_TARFILE}"
+        openssl enc -aes-256-cbc -md sha512 -pbkdf2 -iter 1000 -pass pass:${BACKUPPASS} -in "${TARFILE}" -out "${ENC_TARFILE}"
         log "Encrypt backup file completed"
 
         # Delete unencrypted tar
