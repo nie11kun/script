@@ -63,6 +63,7 @@ BACKUP[9]="/root/.bashrc"
 BACKUP[10]="/etc/env_addon"
 BACKUP[11]="/opt/docker/joplin/docker-compose.yml"
 BACKUP[12]="/opt/docker/joplin/.env"
+BACKUP[13]="/opt/docker/rustdesk/docker-compose.yml"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="1"
