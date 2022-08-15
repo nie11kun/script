@@ -19,7 +19,7 @@
 ########## START OF CONFIG ##########
 
 # Encrypt flag (true: encrypt, false: not encrypt)
-ENCRYPTFLG=false
+ENCRYPTFLG=true
 
 # WARNING: KEEP THE PASSWORD SAFE!!!
 # The password used to encrypt the backup
