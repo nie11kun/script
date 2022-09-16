@@ -66,6 +66,7 @@ BACKUP[12]="/opt/docker/joplin/.env"
 BACKUP[13]="/opt/docker/rustdesk/docker-compose.yml"
 BACKUP[14]="/opt/docker/miniflux/docker-compose.yml"
 BACKUP[15]="/etc/hostname"
+BACKUP[16]="/etc/vsftpd.conf"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="1"
