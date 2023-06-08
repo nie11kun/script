@@ -10,6 +10,6 @@ router_passwd=132018
 sshpass -p $router_passwd ssh root@openwrt.home.marco 'umask go=; sysupgrade -b /tmp/backup-${HOSTNAME}-$(date +%F).tar.gz'
 
 # Download backup
-sshpass -p $router_passwd scp root@openwrt.home.marco -p "$router_passwd":/tmp/backup-*.tar.gz /mnt/h99_home/ftp/OpenwrtBackup
+#sshpass -p $router_passwd scp root@openwrt.home.marco -p "$router_passwd":/tmp/backup-*.tar.gz /mnt/h99_home/ftp/OpenwrtBackup
 
-sshpass -p $router_passwd ssh root@openwrt.home.marco 'umask go=; rm /tmp/backup-*'
+#sshpass -p $router_passwd ssh root@openwrt.home.marco 'umask go=; rm /tmp/backup-*'
