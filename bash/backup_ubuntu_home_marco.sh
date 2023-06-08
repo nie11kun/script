@@ -67,6 +67,7 @@ BACKUP[13]="/usr/lib/systemd/system"
 BACKUP[14]="/root/.bashrc"
 BACKUP[15]="/etc/hostname"
 BACKUP[16]="/etc/vsftpd.conf"
+BACKUP[17]="/etc/env_addon"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="1"
