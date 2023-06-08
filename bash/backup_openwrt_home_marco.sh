@@ -3,9 +3,7 @@
 # must install sshpass first "apt install sshpass"
 
 # Generate/update backup
-sshpass -p $router_passwd ssh root@$router_hostname << EOF
-umask go=; sysupgrade -b /tmp/backup-${HOSTNAME}-$(date +%F).tar.gz
-EOF
+sshpass -p $router_passwd ssh root@$router_hostname 'umask go=; sysupgrade -b /tmp/backup-${HOSTNAME}-$(date +%F).tar.gz'
 if [ "$?" -ne 0 ]; then
     echo "backup failed."
     exit 1
@@ -22,9 +20,7 @@ if [ "$?" -ne 0 ]; then
 fi
 echo "transfer done."
 
-sshpass -p $router_passwd ssh root@$router_hostname << EOF
-umask go=; rm /tmp/backup-*
-EOF
+sshpass -p $router_passwd ssh root@$router_hostname 'umask go=; rm /tmp/backup-*'
 if [ "$?" -ne 0 ]; then
     echo "remove file failed."
     exit 1
