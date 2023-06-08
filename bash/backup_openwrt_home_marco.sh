@@ -4,8 +4,7 @@
 
 # Generate/update backup
 sshpass -p $router_passwd ssh root@$router_hostname << EOF
-umask go=
-sysupgrade -b /tmp/backup-${HOSTNAME}-$(date +%F).tar.gz
+umask go=; sysupgrade -b /tmp/backup-${HOSTNAME}-$(date +%F).tar.gz
 EOF
 if [ "$?" -ne 0 ]; then
     echo "backup failed."
@@ -24,8 +23,7 @@ fi
 echo "transfer done."
 
 sshpass -p $router_passwd ssh root@$router_hostname << EOF
-umask go=
-rm /tmp/backup-*
+umask go=; rm /tmp/backup-*
 EOF
 if [ "$?" -ne 0 ]; then
     echo "remove file failed."
