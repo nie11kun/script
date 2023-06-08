@@ -93,7 +93,7 @@ FTP_HOST="ubuntu.home.marco"
 
 # FTP username
 # OPTIONAL: If you want upload to FTP server, enter the FTP username below
-FTP_USER="ftpuser"
+FTP_USER="marco"
 
 # FTP password
 # OPTIONAL: If you want upload to FTP server, enter the username's password below
