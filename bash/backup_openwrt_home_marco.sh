@@ -3,7 +3,7 @@
 # must install sshpass first "apt install sshpass"
 
 # Generate/update backup
-sshpass -p $router_passwd ssh root@$router_hostname 'umask go=; sysupgrade -b /tmp/backup-${HOSTNAME}-$(date +%F).tar.gz'
+sshpass -p $router_passwd ssh root@$router_hostname 'umask go=; sysupgrade -b /tmp/backup-${HOSTNAME}-$(date +%Y%m%d%H%M%S).tar.gz'
 if [ "$?" -ne 0 ]; then
     echo "backup failed."
     exit 1
