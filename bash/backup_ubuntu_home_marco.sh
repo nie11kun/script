@@ -89,15 +89,15 @@ FTP_FLG=true
 
 # FTP server
 # OPTIONAL: If you want upload to FTP server, enter the Hostname or IP address below
-FTP_HOST="ubuntu.home.marco"
+FTP_HOST=${ftp_host}
 
 # FTP username
 # OPTIONAL: If you want upload to FTP server, enter the FTP username below
-FTP_USER="marco"
+FTP_USER=${ftp_user}
 
 # FTP password
 # OPTIONAL: If you want upload to FTP server, enter the username's password below
-FTP_PASS="132018"
+FTP_PASS=${ftp_passwd}
 
 # FTP server remote folder
 # OPTIONAL: If you want upload to FTP server, enter the FTP remote folder below
