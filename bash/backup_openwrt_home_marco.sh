@@ -3,7 +3,10 @@
 # must install sshpass first "apt install sshpass"
 
 # Generate/update backup
-sshpass -p $router_passwd ssh root@$router_hostname 'umask go=; sysupgrade -b /tmp/backup-${HOSTNAME}-$(date +%F).tar.gz'
+sshpass -p $router_passwd ssh root@$router_hostname << EOF
+umask go=
+sysupgrade -b /tmp/backup-${HOSTNAME}-$(date +%F).tar.gz
+EOF
 if [ "$?" -ne 0 ]; then
     echo "backup failed."
     exit 1
@@ -11,15 +14,19 @@ fi
 echo "backup done."
 
 # Download backup
-sshpass -p $router_passwd sftp root@$router_hostname <<EOF
+sshpass -p $router_passwd sftp root@$router_hostname << EOF
 get /tmp/backup-*.tar.gz /mnt/h99_home/ftp/OpenwrtBackup
+EOF
 if [ "$?" -ne 0 ]; then
     echo "transfer to cloud failed."
     exit 1
 fi
 echo "transfer done."
 
-sshpass -p $router_passwd ssh root@$router_hostname 'umask go=; rm /tmp/backup-*'
+sshpass -p $router_passwd ssh root@$router_hostname << EOF
+umask go=
+rm /tmp/backup-*
+EOF
 if [ "$?" -ne 0 ]; then
     echo "remove file failed."
     exit 1
