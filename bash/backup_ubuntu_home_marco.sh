@@ -70,7 +70,7 @@ BACKUP[16]="/etc/vsftpd.conf"
 BACKUP[17]="/etc/env_addon"
 
 # Number of days to store daily local backups (default 7 days)
-LOCALAGEDAILIES="1"
+LOCALAGEDAILIES="3"
 
 # Delete Googole Drive's & FTP server's remote file flag (true: delete, false: not delete)
 DELETE_REMOTE_FILE_FLG=true
