@@ -11,9 +11,7 @@ fi
 echo "backup done."
 
 # Download backup
-sshpass -p $router_passwd sftp root@$router_hostname << EOF
-get /tmp/backup-*.tar.gz /mnt/h99_home/ftp/OpenwrtBackup
-EOF
+sshpass -p $router_passwd sftp root@$router_hostname 'get /tmp/backup-*.tar.gz /mnt/h99_home/ftp/OpenwrtBackup'
 if [ "$?" -ne 0 ]; then
     echo "transfer to cloud failed."
     exit 1
