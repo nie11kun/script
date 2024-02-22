@@ -4,5 +4,5 @@ mshta vbscript:createobject("wscript.shell").run("""%~nx0"" h",0)(window.close)&
 :begin
 REM
 cd C:\frp
-frpc -c frpc.ini
+frpc -c frpc.toml
 exit
