@@ -97,10 +97,10 @@ def find_intersecting_points(points, normals, line_point, line_direction, min_di
     return np.array(intersecting_points)
 
 # 定义新坐标系的原点
-new_origin = np.array([0, 5, 0])
+new_origin = np.array([0, 8, 0])
 # 定义新坐标系的基矢量（确保它们是单位向量并且相互垂直）
-u = np.array([1, 0, 0]) / np.sqrt(2)  # 新坐标系的 x 轴方向
-v = np.array([0, 1, 0]) / np.sqrt(2)  # 新坐标系的 y 轴方向
+u = np.array([1, 0, 0])  # 新坐标系的 x 轴方向
+v = np.array([0, 1, 0])  # 新坐标系的 y 轴方向
 w = np.array([0, 0, 1])  # 新坐标系的 z 轴方向
 
 # 构建转换矩阵
@@ -108,7 +108,7 @@ transformation_matrix = np.array([u, v, w]).T
 
 # 偏移量
 offset = np.array([0, 30])
-segment_length = 1.0  # 离散化段的长度
+segment_length = 0.01  # 离散化段的长度
 
 # 从 DXF 文件加载曲线，并应用偏移
 dxf_filename = 'test.dxf'  # DXF 文件名
@@ -119,8 +119,8 @@ normals = compute_normals(curve_points)
 
 # 选择旋转的基准点，这里选择曲线的中点
 pivot_index = len(curve_points) // 2
-pivot = [5,15]
-angle = 0  # 旋转角度
+pivot = [0,15]
+angle = 4  # 旋转角度
 
 # 旋转点和法线
 rotated_points, rotated_normals = rotate_points_and_normals(curve_points, normals, angle, pivot)
@@ -183,8 +183,8 @@ def generate_helix_surface(points, normals, num_turns, turn_angle, turn_distance
     return np.vstack(surface_points), np.vstack(surface_normals)
 
 # 生成螺旋曲面
-num_turns = 100
-turn_angle = 0.1  # 每次旋转 36 度，相当于 10 次旋转一圈
+num_turns = 900
+turn_angle = 0.01  # 每次旋转 36 度，相当于 10 次旋转一圈
 
 # 自动计算 turn_distance
 turn_distance = 2 * np.pi * rotated_points[0, 1] * np.tan(np.radians(angle)) / 360
@@ -201,8 +201,6 @@ helix_intersecting_points_new_coordinate_system = helix_intersecting_points_tran
 
 # 将相交的点旋转到新坐标系的 xy 平面
 helix_points_2d = rotate_to_xy_plane(helix_intersecting_points_new_coordinate_system)
-
-print(f"{rotated_points} to {helix_points_2d}")
 
 # 绘制结果
 fig = plt.figure(figsize=(21, 7))
