@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import ezdxf
+from scipy.interpolate import splprep, splev
 
 # 定义一个函数，从 DXF 文件中加载曲线，并仅保留 XY 坐标，同时应用偏移和等距离散化
-def load_dxf_curve(filename, offset=np.array([0, 0]), segment_length=0.1):
+def load_dxf_curve(filename, offset=np.array([0, 30]), segment_length=0.01):
     doc = ezdxf.readfile(filename)  # 读取 DXF 文件
     msp = doc.modelspace()  # 获取模型空间
     points = []
@@ -64,7 +65,7 @@ def rotation_matrix_y(alpha):
     ])
 
 # 定义一个函数，绕某个轴旋转点和法线
-def rotate_points_and_normals(points, normals, angle, pivot):
+def rotate_points_and_normals(points, normals, angle, pivot=np.array([0, 0])):
     translated_points = points - pivot  # 平移点到原点
     points_3d = np.hstack((translated_points, np.zeros((translated_points.shape[0], 1))))  # 添加 z 轴坐标
     normals_3d = np.hstack((normals, np.zeros((normals.shape[0], 1))))  # 添加 z 轴坐标
@@ -84,7 +85,7 @@ def line_to_line_distance(p1, d1, p2, d2):
         return np.abs(np.dot(cross_prod, (p2 - p1))) / norm_cross_prod
 
 # 计算与指定直线相交的点
-def find_intersecting_points(points, normals, line_point, line_direction, min_distance=0.01):
+def find_intersecting_points(points, normals, line_point, line_direction, min_distance=0.001):
     intersecting_points = []
     for i in range(len(points)):
         normal_line_point = points[i]
@@ -96,50 +97,32 @@ def find_intersecting_points(points, normals, line_point, line_direction, min_di
         return np.empty((0, 3))  # 返回一个空的二维数组
     return np.array(intersecting_points)
 
-# 定义新坐标系的原点
-new_origin = np.array([0, 8, 0])
-# 定义新坐标系的基矢量（确保它们是单位向量并且相互垂直）
-u = np.array([1, 0, 0])  # 新坐标系的 x 轴方向
-v = np.array([0, 1, 0])  # 新坐标系的 y 轴方向
-w = np.array([0, 0, 1])  # 新坐标系的 z 轴方向
+# 定义绕 x 轴旋转和平移的函数，生成螺旋曲面上的点和法线
+def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, turn_distance=None):
+    if turn_distance is None:
+        raise ValueError("turn_distance must be provided or calculated before calling generate_helix_surface.")
+    surface_points = []
+    surface_normals = []
+    for i in range(num_turns):
+        angle = turn_angle * i
+        distance = turn_distance * angle
+        R = np.array([
+            [1, 0, 0],
+            [0, np.cos(np.radians(angle)), -np.sin(np.radians(angle))],
+            [0, np.sin(np.radians(angle)), np.cos(np.radians(angle))]
+        ])
+        rotated_points = (points @ R.T) + np.array([distance, 0, 0])
+        rotated_normals = (normals @ R.T) + np.array([distance, 0, 0])
+        surface_points.append(rotated_points)
+        surface_normals.append(rotated_normals)
+    return np.vstack(surface_points), np.vstack(surface_normals)
 
-# 构建转换矩阵
-transformation_matrix = np.array([u, v, w]).T
-
-# 偏移量
-offset = np.array([0, 30])
-segment_length = 0.01  # 离散化段的长度
-
-# 从 DXF 文件加载曲线，并应用偏移
-dxf_filename = 'test.dxf'  # DXF 文件名
-curve_points = load_dxf_curve(dxf_filename, offset, segment_length)
-
-# 计算曲线点的法线
-normals = compute_normals(curve_points)
-
-# 选择旋转的基准点，这里选择曲线的中点
-pivot_index = len(curve_points) // 2
-pivot = [0,15]
-angle = 4  # 旋转角度
-
-# 旋转点和法线
-rotated_points, rotated_normals = rotate_points_and_normals(curve_points, normals, angle, pivot)
-
-# 找到与指定直线相交的点
-line_point = new_origin  # 新坐标系中直线的一点
-line_direction = u  # 新坐标系中直线的方向
-min_distance = 0.001  # 最小距离
-intersecting_points = find_intersecting_points(rotated_points, rotated_normals, line_point, line_direction, min_distance)
-
-# 将旋转后的点和法线转换到新坐标系中
-points_translated = rotated_points - new_origin
-points_new_coordinate_system = points_translated @ transformation_matrix
-normals_translated = rotated_normals[:, :3]  # 确保法线是三维的
-normals_new_coordinate_system = normals_translated @ transformation_matrix
-
-# 将相交点转换到新坐标系中
-intersecting_points_translated = intersecting_points - new_origin
-intersecting_points_new_coordinate_system = intersecting_points_translated @ transformation_matrix
+# 生成平滑曲线上的点
+def smooth_curve(points, num_points):
+    tck, u = splprep([points[:, 0], points[:, 1]], s=0)
+    u_new = np.linspace(u.min(), u.max(), num_points)
+    x_new, y_new = splev(u_new, tck, der=0)
+    return np.vstack((x_new, y_new)).T
 
 # 定义一个函数，将点旋转到新坐标系的 xy 平面
 def rotate_to_xy_plane(points):
@@ -161,16 +144,15 @@ def rotate_to_xy_plane(points):
         projected_points.append(projected_point)
     return np.array(projected_points)
 
-# 将相交的点旋转到新坐标系的 xy 平面
-points_2d = rotate_to_xy_plane(intersecting_points_new_coordinate_system)
-
 # 定义绕 x 轴旋转和平移的函数，生成螺旋曲面上的点和法线
-def generate_helix_surface(points, normals, num_turns, turn_angle, turn_distance):
+def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, turn_distance=None):
+    if turn_distance is None:
+        raise ValueError("turn_distance must be provided or calculated before calling generate_helix_surface.")
     surface_points = []
     surface_normals = []
     for i in range(num_turns):
         angle = turn_angle * i
-        distance = turn_distance * i * turn_angle
+        distance = turn_distance * angle
         R = np.array([
             [1, 0, 0],
             [0, np.cos(np.radians(angle)), -np.sin(np.radians(angle))],
@@ -182,52 +164,127 @@ def generate_helix_surface(points, normals, num_turns, turn_angle, turn_distance
         surface_normals.append(rotated_normals)
     return np.vstack(surface_points), np.vstack(surface_normals)
 
-# 生成螺旋曲面
-num_turns = 900
-turn_angle = 0.01  # 每次旋转 36 度，相当于 10 次旋转一圈
+# 定义新坐标系的原点
+new_origin = np.array([0, 8, 0])
+
+# 定义变量 gan_angle 并设置默认值
+gan_angle = 3  # 默认值为 3 度
+
+# 将 gan_angle 转换为弧度
+gan_angle_rad = np.radians(gan_angle)
+
+# 定义新的坐标系基矢量 u 和 w
+u = np.array([np.cos(gan_angle_rad), 0, -np.sin(gan_angle_rad)])  # 顺时针旋转 gan_angle
+w = np.array([np.sin(gan_angle_rad), 0, np.cos(gan_angle_rad)])  # 顺时针旋转 gan_angle
+
+# 新坐标系的 y 轴方向
+v = np.array([0, 1, 0])
+
+# 构建转换矩阵
+transformation_matrix = np.array([u, v, w]).T
+
+# 偏移量
+offset = np.array([0, 30])
+segment_length = 0.01  # 离散化段的长度
+
+# 从 DXF 文件加载曲线，并应用偏移
+dxf_filename = 'test.dxf'  # DXF 文件名
+curve_points = load_dxf_curve(dxf_filename, offset, segment_length)
+
+# 计算曲线点的法线
+normals = compute_normals(curve_points)
+
+# 选择旋转的基准点，这里选择曲线的中点
+pivot = np.array([0, 0])
+angle = 8  # 旋转角度
+
+# 旋转点和法线
+rotated_points, rotated_normals = rotate_points_and_normals(curve_points, normals, angle, pivot)
+
+# 找到与指定直线相交的点
+line_point = new_origin  # 新坐标系中直线的一点
+line_direction = u  # 新坐标系中直线的方向
+min_distance = 0.001  # 最小距离
+intersecting_points = find_intersecting_points(rotated_points, rotated_normals, line_point, line_direction, min_distance)
+
+# 将旋转后的点和法线转换到新坐标系中
+points_translated = rotated_points - new_origin
+points_new_coordinate_system = points_translated @ transformation_matrix
+normals_translated = rotated_normals[:, :3]  # 确保法线是三维的
+normals_new_coordinate_system = normals_translated @ transformation_matrix
+
+# 将相交点转换到新坐标系中
+intersecting_points_translated = intersecting_points - new_origin
+intersecting_points_new_coordinate_system = intersecting_points_translated @ transformation_matrix
+
+# 将相交的点旋转到新坐标系的 xy 平面
+points_2d = rotate_to_xy_plane(intersecting_points_new_coordinate_system)
 
 # 自动计算 turn_distance
 turn_distance = 2 * np.pi * rotated_points[0, 1] * np.tan(np.radians(angle)) / 360
 
 # 生成螺旋曲面
+num_turns = 2000
+turn_angle = 0.01  # 每次旋转 0.01 度
+
 helix_surface_points, helix_surface_normals = generate_helix_surface(rotated_points, rotated_normals, num_turns, turn_angle, turn_distance)
 
 # 计算螺旋曲面上每条曲线上的点的法线是否与新坐标系上的直线相交
 helix_intersecting_points = find_intersecting_points(helix_surface_points, helix_surface_normals, line_point, line_direction, min_distance)
 
-# 将相交点转换到新坐标系中
+# 将 helix_intersecting_points 转换到新坐标系中
 helix_intersecting_points_translated = helix_intersecting_points - new_origin
 helix_intersecting_points_new_coordinate_system = helix_intersecting_points_translated @ transformation_matrix
 
-# 将相交的点旋转到新坐标系的 xy 平面
-helix_points_2d = rotate_to_xy_plane(helix_intersecting_points_new_coordinate_system)
+# 将 helix_intersecting_points 转换到新坐标系的 xy 平面
+helix_intersecting_points_2d = rotate_to_xy_plane(helix_intersecting_points_new_coordinate_system)
+
+# 去掉 helix_intersecting_points_2d 中 x 坐标大于 0 的点
+helix_intersecting_points_2d_filtered = helix_intersecting_points_2d[helix_intersecting_points_2d[:, 0] <= 0]
+
+# 镜像复制 helix_intersecting_points_2d_filtered 沿着 X 轴并合并
+helix_intersecting_points_2d_mirrored = helix_intersecting_points_2d_filtered.copy()
+helix_intersecting_points_2d_mirrored[:, 0] = -helix_intersecting_points_2d_mirrored[:, 0]
+
+# 将 helix_intersecting_points_2d_filtered 反向排序
+helix_intersecting_points_2d_filtered = helix_intersecting_points_2d_filtered[::-1]
+
+# 合并点
+helix_intersecting_points_2d_combined = np.vstack((helix_intersecting_points_2d_filtered, helix_intersecting_points_2d_mirrored))
+
+# 获取 curve_points 的点个数
+num_curve_points = len(curve_points)
+
+# 将 helix_intersecting_points_2d_combined 处理成平滑曲线上的点，点个数与 curve_points 一致
+helix_intersecting_points_2d_smoothed = smooth_curve(helix_intersecting_points_2d_combined, num_curve_points)
+
+# 找到 y 轴最大点作为基准原点
+max_y_index = np.argmax(helix_intersecting_points_2d_combined[:, 1])
+reference_origin = helix_intersecting_points_2d_combined[max_y_index]
+
+# 平移所有点到新坐标系
+helix_intersecting_points_2d_translated = helix_intersecting_points_2d_combined - reference_origin
 
 # 绘制结果
-fig = plt.figure(figsize=(21, 7))
+fig = plt.figure(figsize=(28, 7))  # 调整fig大小以包含4张图
 
-# 绘制原始曲线和法线
-ax1 = fig.add_subplot(131)
+# 绘制原始曲线，不显示法线
+ax1 = fig.add_subplot(141)
 ax1.plot(curve_points[:, 0], curve_points[:, 1], label='Original Curve with Offset')
-ax1.quiver(curve_points[:, 0], curve_points[:, 1], normals[:, 0], normals[:, 1], color='red', scale=20, label='Normals')
+# 屏蔽法线显示
+# ax1.quiver(curve_points[:, 0], curve_points[:, 1], normals[:, 0], normals[:, 1], color='red', scale=20, label='Normals')
 ax1.legend()
 ax1.set_aspect('equal')
-ax1.set_title('Original Curve with Normals')
+ax1.set_title('Original Curve')
 ax1.set_xlabel('X')
 ax1.set_ylabel('Y')
 
-# 绘制旋转后的曲线和法线，以及螺旋曲面上的点和法线
-ax2 = fig.add_subplot(132, projection='3d')
-ax2.plot(rotated_points[:, 0], rotated_points[:, 1], rotated_points[:, 2], label='Rotated Curve')
-ax2.quiver(rotated_points[:, 0], rotated_points[:, 1], rotated_points[:, 2], 
-           rotated_normals[:, 0], rotated_normals[:, 1], rotated_normals[:, 2], color='red', length=0.5, normalize=True, label='Rotated Normals')
-ax2.scatter(intersecting_points[:, 0], intersecting_points[:, 1], intersecting_points[:, 2], color='green', s=50, label='Intersecting Points')
+# 绘制旋转后的曲线和法线，以及螺旋曲面上的点
+ax2 = fig.add_subplot(142, projection='3d')
 ax2.plot(helix_surface_points[:, 0], helix_surface_points[:, 1], helix_surface_points[:, 2], label='Helix Surface Points')
-# ax2.quiver(helix_surface_points[:, 0], helix_surface_points[:, 1], helix_surface_points[:, 2],
-#            helix_surface_normals[:, 0], helix_surface_normals[:, 1], helix_surface_normals[:, 2],
-#            color='blue', length=0.5, normalize=True, label='Helix Surface Normals')
-ax2.scatter(helix_intersecting_points[:, 0], helix_intersecting_points[:, 1], helix_intersecting_points[:, 2], color='yellow', s=50, label='Helix Intersecting Points')
+ax2.scatter(helix_intersecting_points[:, 0], helix_intersecting_points[:, 1], helix_intersecting_points[:, 2], color='yellow', s=10, label='Helix Intersecting Points')
 ax2.legend()
-ax2.set_title('Rotated Curve with Normals and Helix Surface')
+ax2.set_title('Helix Surface')
 ax2.set_xlabel('X')
 ax2.set_ylabel('Y')
 ax2.set_zlabel('Z')
@@ -238,16 +295,28 @@ ax2.quiver(new_origin[0], new_origin[1], new_origin[2], w[0], w[1], w[2], length
 # 设置 ax2 的坐标比例
 ax2.set_box_aspect([1, 1, 1])  # 设置为等比例
 
-# 绘制相交点旋转到新坐标系二维平面
-ax3 = fig.add_subplot(133)
-if len(helix_points_2d) > 0:
-    ax3.plot(helix_points_2d[:, 0], helix_points_2d[:, 1], label='2D Projection in New Coordinate System')
-    ax3.scatter(helix_points_2d[:, 0], helix_points_2d[:, 1], color='blue', label='Points')
-    ax3.legend()
+# 绘制螺旋曲面相交点旋转到新坐标系二维平面
+ax3 = fig.add_subplot(143)
+ax3.plot(points_new_coordinate_system[:, 0], points_new_coordinate_system[:, 1], label='Points in New Coordinate System', linewidth=0.5)
+ax3.scatter(points_new_coordinate_system[:, 0], points_new_coordinate_system[:, 1], color='blue', s=1, label='Points')
+if len(helix_intersecting_points_2d_smoothed) > 0:
+    ax3.plot(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], label='Helix Intersecting Points', linewidth=0.5)
+    ax3.scatter(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], color='red', s=1, label='Helix Intersecting Points')
+ax3.legend()
 ax3.set_aspect('equal')
-ax3.set_title('2D Projection in New Coordinate System')
+ax3.set_title('2D Projection of Points and Helix Intersecting Points in New Coordinate System')
 ax3.set_xlabel('X')
 ax3.set_ylabel('Y')
+
+# 绘制平移后的点到第4张图
+ax4 = fig.add_subplot(144)
+ax4.plot(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], label='Translated Points', linewidth=0.5)
+ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='Translated Points')
+ax4.legend()
+ax4.set_aspect('equal')
+ax4.set_title('Translated Helix Intersecting Points')
+ax4.set_xlabel('X')
+ax4.set_ylabel('Y')
 
 plt.show()
 
