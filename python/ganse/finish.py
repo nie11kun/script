@@ -1,7 +1,34 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import ezdxf
-from scipy.interpolate import splprep, splev
+from scipy.interpolate import make_interp_spline
+
+# 砂轮杆偏移工件中心距离
+gan_distance = 5
+
+# 砂轮安装角
+gan_angle = 1
+
+# 工件中径
+mid_dia = 60
+
+# 导程
+work_lead = 20
+
+# 螺旋升角
+angle = np.rad2deg(np.arctan2(work_lead, np.pi * mid_dia))
+print(f'标准螺旋升角: {angle}')
+
+# dxf 曲线离散点个数
+segment_length = 0.01
+
+# 螺旋曲面绘制次数
+num_turns = 3000
+# 每个曲面移动角度
+turn_angle = 0.01
+
+# 判断法线是否相交的最小距离
+min_distance = 0.001
 
 # 定义一个函数，从 DXF 文件中加载曲线，并仅保留 XY 坐标，同时应用偏移和等距离散化
 def load_dxf_curve(filename, offset=np.array([0, 30]), segment_length=0.01):
@@ -119,9 +146,24 @@ def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, tur
 
 # 生成平滑曲线上的点
 def smooth_curve(points, num_points):
-    tck, u = splprep([points[:, 0], points[:, 1]], s=0)
-    u_new = np.linspace(u.min(), u.max(), num_points)
-    x_new, y_new = splev(u_new, tck, der=0)
+    x = points[:, 0]
+    y = points[:, 1]
+    
+    # 使用 make_interp_spline 生成 Bézier 曲线
+    spline_x = make_interp_spline(np.arange(len(x)), x, k=2)  # k=2 生成二次 Bézier 曲线
+    spline_y = make_interp_spline(np.arange(len(y)), y, k=2)
+    
+    u_new = np.linspace(0, len(x) - 1, num_points)
+    x_new = spline_x(u_new)
+    y_new = spline_y(u_new)
+    
+    # 确保平滑曲线上的点单调过渡
+    for i in range(1, len(x_new) - 1):
+        if not (x_new[i-1] <= x_new[i] <= x_new[i+1] or x_new[i-1] >= x_new[i] >= x_new[i+1]):
+            x_new[i] = (x_new[i-1] + x_new[i+1]) / 2
+        if not (y_new[i-1] <= y_new[i] <= y_new[i+1] or y_new[i-1] >= y_new[i] >= y_new[i+1]):
+            y_new[i] = (y_new[i-1] + y_new[i+1]) / 2
+
     return np.vstack((x_new, y_new)).T
 
 # 定义一个函数，将点旋转到新坐标系的 xy 平面
@@ -165,10 +207,7 @@ def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, tur
     return np.vstack(surface_points), np.vstack(surface_normals)
 
 # 定义新坐标系的原点
-new_origin = np.array([0, 8, 0])
-
-# 定义变量 gan_angle 并设置默认值
-gan_angle = 3  # 默认值为 3 度
+new_origin = np.array([0, gan_distance, 0])
 
 # 将 gan_angle 转换为弧度
 gan_angle_rad = np.radians(gan_angle)
@@ -184,8 +223,7 @@ v = np.array([0, 1, 0])
 transformation_matrix = np.array([u, v, w]).T
 
 # 偏移量
-offset = np.array([0, 30])
-segment_length = 0.01  # 离散化段的长度
+offset = np.array([0, mid_dia / 2])
 
 # 从 DXF 文件加载曲线，并应用偏移
 dxf_filename = 'test.dxf'  # DXF 文件名
@@ -196,7 +234,6 @@ normals = compute_normals(curve_points)
 
 # 选择旋转的基准点，这里选择曲线的中点
 pivot = np.array([0, 0])
-angle = 8  # 旋转角度
 
 # 旋转点和法线
 rotated_points, rotated_normals = rotate_points_and_normals(curve_points, normals, angle, pivot)
@@ -204,7 +241,6 @@ rotated_points, rotated_normals = rotate_points_and_normals(curve_points, normal
 # 找到与指定直线相交的点
 line_point = new_origin  # 新坐标系中直线的一点
 line_direction = u  # 新坐标系中直线的方向
-min_distance = 0.001  # 最小距离
 intersecting_points = find_intersecting_points(rotated_points, rotated_normals, line_point, line_direction, min_distance)
 
 # 将旋转后的点和法线转换到新坐标系中
@@ -221,11 +257,7 @@ intersecting_points_new_coordinate_system = intersecting_points_translated @ tra
 points_2d = rotate_to_xy_plane(intersecting_points_new_coordinate_system)
 
 # 自动计算 turn_distance
-turn_distance = 2 * np.pi * rotated_points[0, 1] * np.tan(np.radians(angle)) / 360
-
-# 生成螺旋曲面
-num_turns = 2000
-turn_angle = 0.01  # 每次旋转 0.01 度
+turn_distance = work_lead / 360
 
 helix_surface_points, helix_surface_normals = generate_helix_surface(rotated_points, rotated_normals, num_turns, turn_angle, turn_distance)
 
@@ -259,11 +291,19 @@ num_curve_points = len(curve_points)
 helix_intersecting_points_2d_smoothed = smooth_curve(helix_intersecting_points_2d_combined, num_curve_points)
 
 # 找到 y 轴最大点作为基准原点
-max_y_index = np.argmax(helix_intersecting_points_2d_combined[:, 1])
-reference_origin = helix_intersecting_points_2d_combined[max_y_index]
+max_y_index = np.argmax(helix_intersecting_points_2d_smoothed[:, 1])
+reference_origin = helix_intersecting_points_2d_smoothed[max_y_index]
 
 # 平移所有点到新坐标系
-helix_intersecting_points_2d_translated = helix_intersecting_points_2d_combined - reference_origin
+helix_intersecting_points_2d_translated = helix_intersecting_points_2d_smoothed - reference_origin
+
+# 标注 helix_intersecting_points_2d_translated 中 x 坐标小于上一个点的点
+anomalies_translated = []
+for i in range(1, len(helix_intersecting_points_2d_translated)):
+    if helix_intersecting_points_2d_translated[i, 0] < helix_intersecting_points_2d_translated[i-1, 0]:
+        anomalies_translated.append(helix_intersecting_points_2d_translated[i])
+
+anomalies_translated = np.array(anomalies_translated)
 
 # 绘制结果
 fig = plt.figure(figsize=(28, 7))  # 调整fig大小以包含4张图
@@ -312,6 +352,11 @@ ax3.set_ylabel('Y')
 ax4 = fig.add_subplot(144)
 ax4.plot(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], label='Translated Points', linewidth=0.5)
 ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='Translated Points')
+
+# 标注 x 坐标小于上一个点的点
+if len(anomalies_translated) > 0:
+    ax4.scatter(anomalies_translated[:, 0], anomalies_translated[:, 1], color='blue', s=10, label='Anomalies')
+
 ax4.legend()
 ax4.set_aspect('equal')
 ax4.set_title('Translated Helix Intersecting Points')
