@@ -4,13 +4,13 @@ import ezdxf
 from scipy.interpolate import make_interp_spline
 
 # 砂轮杆偏移工件中心距离
-gan_distance = 5
+gan_distance = 15
 
 # 砂轮安装角
-gan_angle = 1
+gan_angle = 3
 
 # 工件中径
-mid_dia = 60
+mid_dia = 45
 
 # 导程
 work_lead = 20
@@ -289,6 +289,40 @@ num_curve_points = len(curve_points)
 
 # 将 helix_intersecting_points_2d_combined 处理成平滑曲线上的点，点个数与 curve_points 一致
 helix_intersecting_points_2d_smoothed = smooth_curve(helix_intersecting_points_2d_combined, num_curve_points)
+
+# 在 x < 0 的点中，当后一个点的 y 坐标小于前一个点的 y 坐标，则删除前面这个点
+points_to_keep = []
+for i in range(1, len(helix_intersecting_points_2d_smoothed)):
+    if helix_intersecting_points_2d_smoothed[i, 0] < 0:
+        if helix_intersecting_points_2d_smoothed[i, 1] >= helix_intersecting_points_2d_smoothed[i - 1, 1]:
+            points_to_keep.append(helix_intersecting_points_2d_smoothed[i - 1])
+    else:
+        points_to_keep.append(helix_intersecting_points_2d_smoothed[i - 1])
+
+points_to_keep.append(helix_intersecting_points_2d_smoothed[-1])  # 保留最后一个点
+
+# 更新 helix_intersecting_points_2d_smoothed
+helix_intersecting_points_2d_smoothed = np.array(points_to_keep)
+
+# 在 x > 0 的点中，当后一个点的 y 坐标大于前一个点的 y 坐标，则删除后面这个点
+points_to_keep = []
+for i in range(len(helix_intersecting_points_2d_smoothed) - 1):
+    if helix_intersecting_points_2d_smoothed[i, 0] > 0:
+        if helix_intersecting_points_2d_smoothed[i + 1, 1] <= helix_intersecting_points_2d_smoothed[i, 1]:
+            points_to_keep.append(helix_intersecting_points_2d_smoothed[i + 1])
+    else:
+        points_to_keep.append(helix_intersecting_points_2d_smoothed[i + 1])
+
+points_to_keep.append(helix_intersecting_points_2d_smoothed[0])  # 保留第一个点
+
+# 更新 helix_intersecting_points_2d_smoothed
+helix_intersecting_points_2d_smoothed = np.array(points_to_keep)
+
+# 获取 helix_intersecting_points_2d_smoothed 中 y 坐标最大点
+max_y_index_smoothed = np.argmax(helix_intersecting_points_2d_smoothed[:, 1])
+max_y_point_smoothed = helix_intersecting_points_2d_smoothed[max_y_index_smoothed]
+
+print(f'砂轮直径: {max_y_point_smoothed[1] * 2}')
 
 # 找到 y 轴最大点作为基准原点
 max_y_index = np.argmax(helix_intersecting_points_2d_smoothed[:, 1])
