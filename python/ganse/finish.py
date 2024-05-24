@@ -2,9 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import ezdxf
 from scipy.interpolate import make_interp_spline
+import sys
 
 # 砂轮杆偏移工件中心距离
-gan_distance = 9
+gan_distance = 12
 
 # 砂轮安装角
 gan_angle = 3
@@ -148,25 +149,29 @@ def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, tur
 
 # 生成平滑曲线上的点
 def smooth_curve(points, num_points):
-    x = points[:, 0]
-    y = points[:, 1]
-    
-    # 使用 make_interp_spline 生成 Bézier 曲线
-    spline_x = make_interp_spline(np.arange(len(x)), x, k=2)  # k=2 生成二次 Bézier 曲线
-    spline_y = make_interp_spline(np.arange(len(y)), y, k=2)
-    
-    u_new = np.linspace(0, len(x) - 1, num_points)
-    x_new = spline_x(u_new)
-    y_new = spline_y(u_new)
-    
-    # 确保平滑曲线上的点单调过渡
-    for i in range(1, len(x_new) - 1):
-        if not (x_new[i-1] <= x_new[i] <= x_new[i+1] or x_new[i-1] >= x_new[i] >= x_new[i+1]):
-            x_new[i] = (x_new[i-1] + x_new[i+1]) / 2
-        if not (y_new[i-1] <= y_new[i] <= y_new[i+1] or y_new[i-1] >= y_new[i] >= y_new[i+1]):
-            y_new[i] = (y_new[i-1] + y_new[i+1]) / 2
+    try:
+        x = points[:, 0]
+        y = points[:, 1]
+        
+        # 使用 make_interp_spline 生成 Bézier 曲线
+        spline_x = make_interp_spline(np.arange(len(x)), x, k=2)  # k=2 生成二次 Bézier 曲线
+        spline_y = make_interp_spline(np.arange(len(y)), y, k=2)
+        
+        u_new = np.linspace(0, len(x) - 1, num_points)
+        x_new = spline_x(u_new)
+        y_new = spline_y(u_new)
+        
+        # 确保平滑曲线上的点单调过渡
+        for i in range(1, len(x_new) - 1):
+            if not (x_new[i-1] <= x_new[i] <= x_new[i+1] or x_new[i-1] >= x_new[i] >= x_new[i+1]):
+                x_new[i] = (x_new[i-1] + x_new[i+1]) / 2
+            if not (y_new[i-1] <= y_new[i] <= y_new[i+1] or y_new[i-1] >= y_new[i] >= y_new[i+1]):
+                y_new[i] = (y_new[i-1] + y_new[i+1]) / 2
 
-    return np.vstack((x_new, y_new)).T
+        return np.vstack((x_new, y_new)).T
+    except Exception as e:
+        print(f"Error: 曲线不存在")
+        sys.exit(1)
 
 # 定义一个函数，将点旋转到新坐标系的 xy 平面
 def rotate_to_xy_plane(points):
@@ -336,6 +341,9 @@ if delete_index is not None:
 
     # 在第3张图中标注该点
     original_points = fixed_curve_points[original_point_index:]
+    original_points_mirrored = original_points.copy()
+    original_points_mirrored[:, 0] = -original_points_mirrored[:, 0]
+    original_points_combined = np.vstack((original_points, original_points_mirrored))
 
 # 去掉 helix_intersecting_points_2d 中 x 坐标大于 0 的点
 helix_intersecting_points_2d_filtered = helix_intersecting_points_2d[helix_intersecting_points_2d[:, 0] <= 0]
@@ -512,19 +520,19 @@ if len(helix_intersecting_points_2d_smoothed) > 0:
 
 # 标注 x 坐标小于上一个点的点
 if len(anomalies_smoothed) > 0:
-    ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#0053ac', s=10, label='Anomalies')
+    ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#0053ac', s=10, label='Anomalies bottom')
 
 # 标注 曲线上有交叉的点
 if len(helix_intersecting_points_2d_over_combined) > 0:
-    ax3.scatter(helix_intersecting_points_2d_over_combined[:, 0], helix_intersecting_points_2d_over_combined[:, 1], color='#0053ac', s=10, label='Anomalies')
+    ax3.scatter(helix_intersecting_points_2d_over_combined[:, 0], helix_intersecting_points_2d_over_combined[:, 1], color='#1f5793', s=10, label='Anomalies top')
 
 # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
 if delete_index is not None:
-    ax3.scatter(original_points[:, 0], original_points[:, 1], color='green', s=5, label=f'Original Point from Curve (Turn: {turn_index}, Index: {original_point_index})')
+    ax3.scatter(original_points_combined[:, 0], original_points_combined[:, 1], color='green', s=5, label=f'Original Point from Curve (Turn: {turn_index}, Index: {original_point_index})')
 
 ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.5))  # 调整图例位置
 ax3.set_aspect('equal')
-ax3.set_title('2D Projection of Points and Helix Intersecting Points in New Coordinate System')
+ax3.set_title('curve_points and Intersecting Points')
 ax3.set_xlabel('X')
 ax3.set_ylabel('Y')
 
@@ -534,7 +542,7 @@ ax4.plot(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_point
 ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='Translated Points')
 ax4.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
 ax4.set_aspect('equal')
-ax4.set_title('Translated Helix Intersecting Points')
+ax4.set_title('Translated Helix Intersecting Points', pad=20)
 ax4.set_xlabel('X')
 ax4.set_ylabel('Y')
 
