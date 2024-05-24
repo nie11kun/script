@@ -482,6 +482,65 @@ if angle_second is not None:
 if angle_penultimate is not None:
     print(f"Angle at penultimate point: {angle_penultimate:.2f} degrees")
 
+# 拆分成两个数组
+right_points = helix_intersecting_points_2d_translated[helix_intersecting_points_2d_translated[:, 0] < 0]
+left_points = helix_intersecting_points_2d_translated[helix_intersecting_points_2d_translated[:, 0] >= 0]
+
+# x 坐标小于0的点反向排序
+right_points = right_points[::-1]
+
+# 准备写入文件的内容
+file_content = f""";********************************
+DEF REAL VER_MODE,WHEEL_DIA
+DEF AXIS AX_HORI,AX_VER
+AX_HORI=AXNAME(AXIS_HORI)
+AX_VER=AXNAME(AXIS_VER)
+VER_MODE=DRESSER[50]
+WHEEL_DIA=DRESSER[24]
+
+IF (WHEEL_DIA>={wheel_dia:.4f}) GOTOF DIA_36_00;
+IF (WHEEL_DIA<{wheel_dia:.4f}) AND (WHEEL_DIA>=35.60) GOTOF DIA_35_60;
+IF (WHEEL_DIA<26.00) GOTOF DIA_0000;
+
+DIA_36_00:
+IF DRESSER[40]==1;
+;*********************************************
+DRESSER[41]={angle_before_max:.4f};外部齿形程序右起点角度(竖直向下夹角)
+DRESSER[42]={angle_after_max:.4f};外部齿形程序左起点角度(竖直向下夹角)
+DRESSER[43]=0;外部齿形程序顶部平台长度(预留参数)
+DRESSER[45]=0;齿形右终点角度(竖直向下夹角)
+DRESSER[46]=0;齿形左终点角度(竖直向下夹角)
+DRESSER[51]={first_point[0]:.4f};外部齿形程序右终点水平坐标
+DRESSER[131]={-1 * first_point[1]:.4f};外部齿形程序右终点垂直坐标(考虑VER_MODE)
+DRESSER[115]={last_point[0]:.4f};外部齿形程序左终点水平坐标
+DRESSER[138]={-1 * last_point[1]:.4f};外部齿形程序左终点垂直坐标(考虑VER_MODE)
+DRESSER[99]=1.900000
+;***********************************************
+RET
+ENDIF
+;齿形部分
+CASE DRESSER[44] OF 0 GOTOF RIGHT_SIDE 1 GOTOF LEFT_SIDE DEFAULT GOTOF RIGHT_SIDE
+;右侧齿形
+RIGHT_SIDE:
+G64 G90 G01
+"""
+
+# 添加右侧点位坐标
+for point in right_points:
+    file_content += f"AX[AX_VER]={-1 * point[1]:.4f}*VER_MODE   AX[AX_HORI]={point[0]:.4f}\n"
+
+file_content += "RET\n;左侧齿形\nLEFT_SIDE:\nG64 G90 G01\n"
+
+# 添加左侧点位坐标
+for point in left_points:
+    file_content += f"AX[AX_VER]={-1 * point[1]:.4f}*VER_MODE   AX[AX_HORI]={point[0]:.4f}\n"
+
+file_content += "RET\n"
+
+# 将内容写入文件
+with open("output.txt", "w", encoding="utf-8") as f:
+    f.write(file_content)
+
 # 设置中文字体
 # 这里以 SimHei 字体为例，确保系统中已安装该字体
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 设置默认字体
