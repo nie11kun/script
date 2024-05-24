@@ -4,7 +4,7 @@ import ezdxf
 from scipy.interpolate import make_interp_spline
 
 # 砂轮杆偏移工件中心距离
-gan_distance = 15
+gan_distance = 10
 
 # 砂轮安装角
 gan_angle = 3
@@ -188,6 +188,66 @@ def rotate_to_xy_plane(points):
         projected_points.append(projected_point)
     return np.array(projected_points)
 
+# 将所有点等距处理 最高点设置为 0,0
+def redistribute_points_equally(points, num_points):
+    # 找到 Y 轴最高的点，并将其坐标设为 (0,0)
+    max_y_index = np.argmax(points[:, 1])
+    max_y_point = points[max_y_index]
+    translated_points = points - max_y_point
+
+    # 计算每个点到最高点的累积距离
+    distances = np.sqrt(np.sum(np.diff(translated_points, axis=0)**2, axis=1))
+    cumulative_distances = np.insert(np.cumsum(distances), 0, 0)
+
+    # 生成等距点
+    equal_distances = np.linspace(0, cumulative_distances[-1], num_points)
+
+    # 线性插值生成等距点
+    x_interp = np.interp(equal_distances, cumulative_distances, translated_points[:, 0])
+    y_interp = np.interp(equal_distances, cumulative_distances, translated_points[:, 1])
+
+    equal_points = np.vstack((x_interp, y_interp)).T
+    return equal_points
+
+# 计算某一点在曲线上的切线
+def calculate_tangent(points, index, window=3):
+    """
+    计算指定点的切线向量。
+    参数:
+    - points: 点的数组
+    - index: 指定点的索引
+    - window: 用于计算切线的窗口大小
+    
+    返回:
+    - 切线向量
+    """
+    half_window = window // 2
+    start = max(index - half_window, 0)
+    end = min(index + half_window + 1, len(points))
+    x = points[start:end, 0]
+    y = points[start:end, 1]
+    
+    # 多项式拟合
+    coeffs = np.polyfit(x, y, 1)
+    tangent = np.array([1, coeffs[0]])  # [dx, dy]
+    tangent /= np.linalg.norm(tangent)  # 归一化
+    return tangent
+
+# 计算切线与垂直方向的夹角
+def calculate_angle(tangent, vertical=np.array([0, -1])):
+    """
+    计算切线与垂直方向的夹角。
+    参数:
+    - tangent: 切线向量
+    - vertical: 垂直方向向量
+    
+    返回:
+    - 夹角（弧度）
+    """
+    dot_product = np.dot(tangent, vertical)
+    angle = np.arccos(dot_product)
+    return np.degrees(angle)
+
 # 定义新坐标系的原点
 new_origin = np.array([0, gan_distance, 0])
 
@@ -343,6 +403,63 @@ for i in range(len(helix_intersecting_points_2d_translated) - 1):
 
 # 删除需要删除的点
 helix_intersecting_points_2d_translated = np.delete(helix_intersecting_points_2d_translated, points_to_delete, axis=0)
+
+# 处理 helix_intersecting_points_2d_translated 使其等距，并将最高点设为 (0,0)
+helix_intersecting_points_2d_translated = redistribute_points_equally(helix_intersecting_points_2d_translated, num_curve_points)
+
+# 获取最高点
+max_y_index = np.argmax(helix_intersecting_points_2d_translated[:, 1])
+min_y_index = np.argmin(helix_intersecting_points_2d_translated[:, 1])
+max_y_point = helix_intersecting_points_2d_translated[max_y_index]
+min_y_point = helix_intersecting_points_2d_translated[min_y_index]
+
+# 计算高度差
+height_difference = max_y_point[1] - min_y_point[1]
+
+# 最高点的前一个点的切线与垂直向下方向的夹角
+if max_y_index > 0:
+    tangent_before_max = calculate_tangent(helix_intersecting_points_2d_translated, max_y_index - 1)
+    angle_before_max = calculate_angle(-1 * tangent_before_max)
+else:
+    angle_before_max = None
+
+# 最高点的后一个点的切线与垂直向下方向的夹角
+if max_y_index < len(helix_intersecting_points_2d_translated) - 1:
+    tangent_after_max = calculate_tangent(helix_intersecting_points_2d_translated, max_y_index + 1)
+    angle_after_max = calculate_angle(tangent_after_max)
+else:
+    angle_after_max = None
+
+# 第二个点的切线与垂直向下方向的夹角
+if len(helix_intersecting_points_2d_translated) > 1:
+    tangent_second = calculate_tangent(helix_intersecting_points_2d_translated, 1)
+    angle_second = calculate_angle(-1 * tangent_second)
+else:
+    angle_second = None
+
+# 倒数第二个点的切线与垂直向下方向的夹角
+if len(helix_intersecting_points_2d_translated) > 1:
+    tangent_penultimate = calculate_tangent(helix_intersecting_points_2d_translated, len(helix_intersecting_points_2d_translated) - 2)
+    angle_penultimate = calculate_angle(tangent_penultimate)
+else:
+    angle_penultimate = None
+
+# 获取第一个点和最后一个点的坐标
+first_point = helix_intersecting_points_2d_translated[0]
+last_point = helix_intersecting_points_2d_translated[-1]
+
+# 打印第一个点和最后一个点的坐标
+print(f"First point: {first_point}")
+print(f"Last point: {last_point}")
+print(f"Height difference between max and min points: {height_difference:.2f}")
+if angle_before_max is not None:
+    print(f"Angle before max point: {angle_before_max:.2f} degrees")
+if angle_after_max is not None:
+    print(f"Angle after max point: {angle_after_max:.2f} degrees")
+if angle_second is not None:
+    print(f"Angle at second point: {angle_second:.2f} degrees")
+if angle_penultimate is not None:
+    print(f"Angle at penultimate point: {angle_penultimate:.2f} degrees")
 
 # 绘制结果
 fig = plt.figure(figsize=(28, 7))  # 调整fig大小以包含4张图
