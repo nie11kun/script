@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import ezdxf
 from scipy.interpolate import make_interp_spline
 import sys
+import platform
 
 # 砂轮杆偏移工件中心距离
 gan_distance = 18
@@ -562,8 +563,18 @@ with open("output.txt", "a", encoding="utf-8") as f:
 # ********************************
 
 # 设置中文字体
-# 这里以 SimHei 字体为例，确保系统中已安装该字体
-plt.rcParams['font.sans-serif'] = ['SimHei']  # 设置默认字体
+
+# 检测操作系统
+current_os = platform.system()
+
+# 根据操作系统设置字体
+if current_os == 'Windows':
+    plt.rcParams['font.family'] = 'SimHei'
+elif current_os == 'Darwin':  # macOS
+    plt.rcParams['font.family'] = 'Heiti TC'
+else:
+    plt.rcParams['font.family'] = 'Noto Sans CJK JP'
+
 plt.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号 '-' 显示为方块的问题
 
 # 绘制结果
