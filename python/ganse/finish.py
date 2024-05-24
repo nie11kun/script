@@ -484,6 +484,12 @@ last_point = helix_intersecting_points_2d_translated[-1]
 
 # ********************************
 
+# 将直径转换为4位小数的字符串
+wheel_dia_str = f"{wheel_dia:.4f}"
+
+# 将小数点替换为下划线
+wheel_dia_str = wheel_dia_str.replace('.', '_')
+
 head_content = f"""
 ;********************************
 DEF REAL VER_MODE,WHEEL_DIA
@@ -492,6 +498,11 @@ AX_HORI=AXNAME(AXIS_HORI)
 AX_VER=AXNAME(AXIS_VER)
 VER_MODE=DRESSER[50]
 WHEEL_DIA=DRESSER[24]
+;********************************
+
+IF (WHEEL_DIA>={wheel_dia:.4f}) GOTOF DIA_{wheel_dia_str};
+IF (WHEEL_DIA<{wheel_dia:.4f}) GOTOF DIA_0000;
+
 ;********************************
 """
 
@@ -505,12 +516,6 @@ left_points = helix_intersecting_points_2d_translated[helix_intersecting_points_
 
 # x 坐标小于0的点反向排序
 right_points = right_points[::-1]
-
-# 将直径转换为4位小数的字符串
-wheel_dia_str = f"{wheel_dia:.4f}"
-
-# 将小数点替换为下划线
-wheel_dia_str = wheel_dia_str.replace('.', '_')
 
 # 准备写入文件的内容
 file_content = f"""
