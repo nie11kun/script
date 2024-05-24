@@ -340,10 +340,10 @@ if delete_index is not None:
     original_point_index, turn_index = point_indices[helix_index]
 
     # 在第3张图中标注该点
-    original_points = fixed_curve_points[original_point_index:]
-    original_points_mirrored = original_points.copy()
-    original_points_mirrored[:, 0] = -original_points_mirrored[:, 0]
-    original_points_combined = np.vstack((original_points, original_points_mirrored))
+    original_points_abnormal = fixed_curve_points[original_point_index:]
+    original_points_abnormal_mirrored = original_points_abnormal.copy()
+    original_points_abnormal_mirrored[:, 0] = -original_points_abnormal_mirrored[:, 0]
+    original_points_abnormal_combined = np.vstack((original_points_abnormal, original_points_abnormal_mirrored))
 
     # 第一个不符合条件的点在原始曲线中的切线斜率
     tangent_anomalies_index = calculate_tangent(fixed_curve_points, original_point_index)
@@ -479,31 +479,36 @@ if angle_second is not None:
 if angle_penultimate is not None:
     print(f"Angle at penultimate point: {angle_penultimate:.2f} degrees")
 
+# 设置中文字体
+# 这里以 SimHei 字体为例，确保系统中已安装该字体
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 设置默认字体
+plt.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号 '-' 显示为方块的问题
+
 # 绘制结果
 fig = plt.figure(figsize=(28, 7))  # 调整fig大小以包含4张图
 
 # 绘制原始曲线，不显示法线
 ax1 = fig.add_subplot(141)
-ax1.plot(curve_points[:, 0], curve_points[:, 1], label='Original Curve with Offset')
+ax1.plot(curve_points[:, 0], curve_points[:, 1], label='标准齿形轨迹')
 # 屏蔽法线显示
 # ax1.quiver(curve_points[:, 0], curve_points[:, 1], normals[:, 0], normals[:, 1], color='red', scale=20, label='Normals')
 ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
 ax1.set_aspect('equal')
-ax1.set_title('Original Curve', pad=20)  # 调整标题位置
+ax1.set_title('标准齿形', pad=20)  # 调整标题位置
 ax1.set_xlabel('X')
 ax1.set_ylabel('Y')
 
 # 绘制旋转后的曲线和法线，以及螺旋曲面上的点
 ax2 = fig.add_subplot(142, projection='3d')
-ax2.plot(helix_surface_points[:, 0], helix_surface_points[:, 1], helix_surface_points[:, 2], label='Helix Surface Points')
-ax2.scatter(helix_intersecting_points[:, 0], helix_intersecting_points[:, 1], helix_intersecting_points[:, 2], color='yellow', s=10, label='Helix Intersecting Points')
+ax2.plot(helix_surface_points[:, 0], helix_surface_points[:, 1], helix_surface_points[:, 2], label='螺旋曲面')
+ax2.scatter(helix_intersecting_points[:, 0], helix_intersecting_points[:, 1], helix_intersecting_points[:, 2], color='yellow', s=10, label='砂轮接触点')
 
 # 标注异常点及后续所有点在曲面中的位置
 if delete_index is not None:
-    ax2.scatter(anomalous_points[:, 0], anomalous_points[:, 1], anomalous_points[:, 2], color='red', s=50, label='Anomalous Points')
+    ax2.scatter(anomalous_points[:, 0], anomalous_points[:, 1], anomalous_points[:, 2], color='red', s=50, label='异常接触点')
 
 ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2))  # 调整图例位置
-ax2.set_title('Helix Surface', pad=20)  # 调整标题位置
+ax2.set_title('滚道加工面', pad=20)  # 调整标题位置
 ax2.set_xlabel('X')
 ax2.set_ylabel('Y')
 ax2.set_zlabel('Z')
@@ -516,44 +521,42 @@ ax2.set_box_aspect([1, 1, 1])  # 设置为等比例
 
 # 绘制螺旋曲面相交点旋转到新坐标系二维平面
 ax3 = fig.add_subplot(143)
-ax3.plot(fixed_curve_points[:, 0], fixed_curve_points[:, 1], label='Points in New Coordinate System', linewidth=0.5)
-ax3.scatter(fixed_curve_points[:, 0], fixed_curve_points[:, 1], color='blue', s=1, label='Points')
+ax3.plot(fixed_curve_points[:, 0], fixed_curve_points[:, 1], label='标准齿形轨迹', linewidth=0.5)
+ax3.scatter(fixed_curve_points[:, 0], fixed_curve_points[:, 1], color='blue', s=1, label='标准齿形轨迹点')
 if len(helix_intersecting_points_2d_smoothed) > 0:
-    ax3.plot(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], label='Helix Intersecting Points', linewidth=0.5)
-    ax3.scatter(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], color='red', s=1, label='Helix Intersecting Points')
+    ax3.plot(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], label='干涉砂轮齿形轨迹', linewidth=0.5)
+    ax3.scatter(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], color='red', s=1, label='干涉砂轮齿形轨迹点')
 
 # 标注 x 坐标小于上一个点的点
 if len(anomalies_smoothed) > 0:
-    ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#0053ac', s=10, label='Anomalies bottom')
+    ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#0053ac', s=10, label='齿底异常点')
 
 # 标注 曲线上有交叉的点
 if len(helix_intersecting_points_2d_over_combined) > 0:
-    ax3.scatter(helix_intersecting_points_2d_over_combined[:, 0], helix_intersecting_points_2d_over_combined[:, 1], color='#1f5793', s=10, label='Anomalies top')
+    ax3.scatter(helix_intersecting_points_2d_over_combined[:, 0], helix_intersecting_points_2d_over_combined[:, 1], color='#1f5793', s=10, label='齿顶异常点')
 
 # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
 if delete_index is not None:
-    ax3.scatter(original_points_combined[:, 0], original_points_combined[:, 1], color='green', s=5, label=f'Original Point from Curve (Turn: {turn_index}, Index: {original_point_index})')
+    ax3.scatter(original_points_abnormal_combined[:, 0], original_points_abnormal_combined[:, 1], color='green', s=5, label=f'异常点在原始轨道的位置 (螺旋圈数: {turn_index}, 点位号: {original_point_index})')
 
 # 标注原始曲线中第一个不符合条件的点的切线斜率
 if tangent_anomalies_index is not None:
-    ax3.quiver(original_points[0, 0], original_points[0, 1], tangent_anomalies_index[0], tangent_anomalies_index[1], color='red', scale=5, label=f'tangent_anomalies angle: {anomalies_ang}')
+    ax3.quiver(original_points_abnormal[0, 0], original_points_abnormal[0, 1], tangent_anomalies_index[0], tangent_anomalies_index[1], color='red', scale=5, label=f'第一个异常点的切线斜率: {anomalies_ang}')
 
 ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.5))  # 调整图例位置
 ax3.set_aspect('equal')
-ax3.set_title('curve_points and Intersecting Points')
+ax3.set_title('原始轨迹与干涉轨迹对比')
 ax3.set_xlabel('X')
 ax3.set_ylabel('Y')
 
 # 绘制平移后的点到第4张图
 ax4 = fig.add_subplot(144)
-ax4.plot(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], label='Translated Points', linewidth=0.5)
-ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='Translated Points')
+ax4.plot(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], label='优化后的干涉轨迹曲线', linewidth=0.5)
+ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='优化后的干涉轨迹点')
 ax4.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
 ax4.set_aspect('equal')
-ax4.set_title('Translated Helix Intersecting Points', pad=20)
+ax4.set_title('最终干涉轨迹', pad=20)
 ax4.set_xlabel('X')
 ax4.set_ylabel('Y')
 
 plt.show()
-
-helix_surface_points
