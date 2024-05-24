@@ -130,6 +130,7 @@ def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, tur
         raise ValueError("turn_distance must be provided or calculated before calling generate_helix_surface.")
     surface_points = []
     surface_normals = []
+    point_indices = []  # 用于存储每个点的来源索引
     for i in range(num_turns):
         angle = turn_angle * i
         distance = turn_distance * angle
@@ -142,7 +143,8 @@ def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, tur
         rotated_normals = (normals @ R.T) + np.array([distance, 0, 0])
         surface_points.append(rotated_points)
         surface_normals.append(rotated_normals)
-    return np.vstack(surface_points), np.vstack(surface_normals)
+        point_indices.extend([(j, i) for j in range(len(points))])  # 追踪点的来源
+    return np.vstack(surface_points), np.vstack(surface_normals), point_indices
 
 # 生成平滑曲线上的点
 def smooth_curve(points, num_points):
@@ -186,26 +188,6 @@ def rotate_to_xy_plane(points):
         projected_points.append(projected_point)
     return np.array(projected_points)
 
-# 定义绕 x 轴旋转和平移的函数，生成螺旋曲面上的点和法线
-def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, turn_distance=None):
-    if turn_distance is None:
-        raise ValueError("turn_distance must be provided or calculated before calling generate_helix_surface.")
-    surface_points = []
-    surface_normals = []
-    for i in range(num_turns):
-        angle = turn_angle * i
-        distance = turn_distance * angle
-        R = np.array([
-            [1, 0, 0],
-            [0, np.cos(np.radians(angle)), -np.sin(np.radians(angle))],
-            [0, np.sin(np.radians(angle)), np.cos(np.radians(angle))]
-        ])
-        rotated_points = (points @ R.T) + np.array([distance, 0, 0])
-        rotated_normals = (normals @ R.T) + np.array([distance, 0, 0])
-        surface_points.append(rotated_points)
-        surface_normals.append(rotated_normals)
-    return np.vstack(surface_points), np.vstack(surface_normals)
-
 # 定义新坐标系的原点
 new_origin = np.array([0, gan_distance, 0])
 
@@ -228,6 +210,8 @@ offset = np.array([0, mid_dia / 2])
 # 从 DXF 文件加载曲线，并应用偏移
 dxf_filename = 'test.dxf'  # DXF 文件名
 curve_points = load_dxf_curve(dxf_filename, offset, segment_length)
+fixed_curve_points = np.hstack((curve_points, np.zeros((curve_points.shape[0], 1))))
+fixed_curve_points = fixed_curve_points - new_origin
 
 # 计算曲线点的法线
 normals = compute_normals(curve_points)
@@ -259,7 +243,7 @@ points_2d = rotate_to_xy_plane(intersecting_points_new_coordinate_system)
 # 自动计算 turn_distance
 turn_distance = work_lead / 360
 
-helix_surface_points, helix_surface_normals = generate_helix_surface(rotated_points, rotated_normals, num_turns, turn_angle, turn_distance)
+helix_surface_points, helix_surface_normals, point_indices = generate_helix_surface(rotated_points, rotated_normals, num_turns, turn_angle, turn_distance)
 
 # 计算螺旋曲面上每条曲线上的点的法线是否与新坐标系上的直线相交
 helix_intersecting_points = find_intersecting_points(helix_surface_points, helix_surface_normals, line_point, line_direction, min_distance)
@@ -270,6 +254,28 @@ helix_intersecting_points_new_coordinate_system = helix_intersecting_points_tran
 
 # 将 helix_intersecting_points 转换到新坐标系的 xy 平面
 helix_intersecting_points_2d = rotate_to_xy_plane(helix_intersecting_points_new_coordinate_system)
+
+# 查找第一个 x 和 y 坐标都大于前一个点的点的索引
+delete_index = None
+for i in range(1, len(helix_intersecting_points_2d)):
+    if helix_intersecting_points_2d[i, 0] > helix_intersecting_points_2d[i-1, 0] and helix_intersecting_points_2d[i, 1] > helix_intersecting_points_2d[i-1, 1]:
+        delete_index = i
+        break
+
+# 如果找到这样的点
+if delete_index is not None:
+    # 标注该点及后续所有点在 helix_intersecting_points 中的曲面位置
+    anomalous_points = helix_intersecting_points[delete_index:]
+    
+    # 删除该点及后续所有点
+    helix_intersecting_points_2d = helix_intersecting_points_2d[:delete_index]
+
+    point_to_find = helix_intersecting_points[delete_index]
+    helix_index = np.where((helix_surface_points == point_to_find).all(axis=1))[0][0]
+    original_point_index, turn_index = point_indices[helix_index]
+
+    # 在第3张图中标注该点
+    original_points = fixed_curve_points[original_point_index:]
 
 # 去掉 helix_intersecting_points_2d 中 x 坐标大于 0 的点
 helix_intersecting_points_2d_filtered = helix_intersecting_points_2d[helix_intersecting_points_2d[:, 0] <= 0]
@@ -290,33 +296,22 @@ num_curve_points = len(curve_points)
 # 将 helix_intersecting_points_2d_combined 处理成平滑曲线上的点，点个数与 curve_points 一致
 helix_intersecting_points_2d_smoothed = smooth_curve(helix_intersecting_points_2d_combined, num_curve_points)
 
-# 在 x < 0 的点中，当后一个点的 y 坐标小于前一个点的 y 坐标，则删除前面这个点
-points_to_keep = []
+# 标注 helix_intersecting_points_2d_smoothed 中 x 坐标小于上一个点的点
+anomalies_smoothed = []
+
+# 当 x 坐标小于 0 时，找到不符合条件的前一个点
 for i in range(1, len(helix_intersecting_points_2d_smoothed)):
     if helix_intersecting_points_2d_smoothed[i, 0] < 0:
-        if helix_intersecting_points_2d_smoothed[i, 1] >= helix_intersecting_points_2d_smoothed[i - 1, 1]:
-            points_to_keep.append(helix_intersecting_points_2d_smoothed[i - 1])
-    else:
-        points_to_keep.append(helix_intersecting_points_2d_smoothed[i - 1])
+        if helix_intersecting_points_2d_smoothed[i, 0] < helix_intersecting_points_2d_smoothed[i - 1, 0]:
+            anomalies_smoothed.append(helix_intersecting_points_2d_smoothed[i - 1])
 
-points_to_keep.append(helix_intersecting_points_2d_smoothed[-1])  # 保留最后一个点
-
-# 更新 helix_intersecting_points_2d_smoothed
-helix_intersecting_points_2d_smoothed = np.array(points_to_keep)
-
-# 在 x > 0 的点中，当后一个点的 y 坐标大于前一个点的 y 坐标，则删除后面这个点
-points_to_keep = []
+# 当 x 坐标大于 0 时，找到不符合条件的后一个点
 for i in range(len(helix_intersecting_points_2d_smoothed) - 1):
     if helix_intersecting_points_2d_smoothed[i, 0] > 0:
-        if helix_intersecting_points_2d_smoothed[i + 1, 1] <= helix_intersecting_points_2d_smoothed[i, 1]:
-            points_to_keep.append(helix_intersecting_points_2d_smoothed[i + 1])
-    else:
-        points_to_keep.append(helix_intersecting_points_2d_smoothed[i + 1])
+        if helix_intersecting_points_2d_smoothed[i, 0] > helix_intersecting_points_2d_smoothed[i + 1, 0]:
+            anomalies_smoothed.append(helix_intersecting_points_2d_smoothed[i + 1])
 
-points_to_keep.append(helix_intersecting_points_2d_smoothed[0])  # 保留第一个点
-
-# 更新 helix_intersecting_points_2d_smoothed
-helix_intersecting_points_2d_smoothed = np.array(points_to_keep)
+anomalies_smoothed = np.array(anomalies_smoothed)
 
 # 获取 helix_intersecting_points_2d_smoothed 中 y 坐标最大点
 max_y_index_smoothed = np.argmax(helix_intersecting_points_2d_smoothed[:, 1])
@@ -331,13 +326,23 @@ reference_origin = helix_intersecting_points_2d_smoothed[max_y_index]
 # 平移所有点到新坐标系
 helix_intersecting_points_2d_translated = helix_intersecting_points_2d_smoothed - reference_origin
 
-# 标注 helix_intersecting_points_2d_translated 中 x 坐标小于上一个点的点
-anomalies_translated = []
-for i in range(1, len(helix_intersecting_points_2d_translated)):
-    if helix_intersecting_points_2d_translated[i, 0] < helix_intersecting_points_2d_translated[i-1, 0]:
-        anomalies_translated.append(helix_intersecting_points_2d_translated[i])
+# 处理 helix_intersecting_points_2d_translated 中的点
+points_to_delete = []
 
-anomalies_translated = np.array(anomalies_translated)
+# 当 x 坐标小于 0 时，删除不符合条件的前一个点
+for i in range(1, len(helix_intersecting_points_2d_translated)):
+    if helix_intersecting_points_2d_translated[i, 0] < 0:
+        if helix_intersecting_points_2d_translated[i, 0] < helix_intersecting_points_2d_translated[i - 1, 0]:
+            points_to_delete.append(i - 1)
+
+# 当 x 坐标大于 0 时，删除不符合条件的后一个点
+for i in range(len(helix_intersecting_points_2d_translated) - 1):
+    if helix_intersecting_points_2d_translated[i, 0] > 0:
+        if helix_intersecting_points_2d_translated[i, 0] > helix_intersecting_points_2d_translated[i + 1, 0]:
+            points_to_delete.append(i + 1)
+
+# 删除需要删除的点
+helix_intersecting_points_2d_translated = np.delete(helix_intersecting_points_2d_translated, points_to_delete, axis=0)
 
 # 绘制结果
 fig = plt.figure(figsize=(28, 7))  # 调整fig大小以包含4张图
@@ -347,9 +352,9 @@ ax1 = fig.add_subplot(141)
 ax1.plot(curve_points[:, 0], curve_points[:, 1], label='Original Curve with Offset')
 # 屏蔽法线显示
 # ax1.quiver(curve_points[:, 0], curve_points[:, 1], normals[:, 0], normals[:, 1], color='red', scale=20, label='Normals')
-ax1.legend()
+ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
 ax1.set_aspect('equal')
-ax1.set_title('Original Curve')
+ax1.set_title('Original Curve', pad=20)  # 调整标题位置
 ax1.set_xlabel('X')
 ax1.set_ylabel('Y')
 
@@ -357,8 +362,13 @@ ax1.set_ylabel('Y')
 ax2 = fig.add_subplot(142, projection='3d')
 ax2.plot(helix_surface_points[:, 0], helix_surface_points[:, 1], helix_surface_points[:, 2], label='Helix Surface Points')
 ax2.scatter(helix_intersecting_points[:, 0], helix_intersecting_points[:, 1], helix_intersecting_points[:, 2], color='yellow', s=10, label='Helix Intersecting Points')
-ax2.legend()
-ax2.set_title('Helix Surface')
+
+# 标注异常点及后续所有点在曲面中的位置
+if delete_index is not None:
+    ax2.scatter(anomalous_points[:, 0], anomalous_points[:, 1], anomalous_points[:, 2], color='red', s=50, label='Anomalous Points')
+
+ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2))  # 调整图例位置
+ax2.set_title('Helix Surface', pad=20)  # 调整标题位置
 ax2.set_xlabel('X')
 ax2.set_ylabel('Y')
 ax2.set_zlabel('Z')
@@ -371,12 +381,21 @@ ax2.set_box_aspect([1, 1, 1])  # 设置为等比例
 
 # 绘制螺旋曲面相交点旋转到新坐标系二维平面
 ax3 = fig.add_subplot(143)
-ax3.plot(points_new_coordinate_system[:, 0], points_new_coordinate_system[:, 1], label='Points in New Coordinate System', linewidth=0.5)
-ax3.scatter(points_new_coordinate_system[:, 0], points_new_coordinate_system[:, 1], color='blue', s=1, label='Points')
+ax3.plot(fixed_curve_points[:, 0], fixed_curve_points[:, 1], label='Points in New Coordinate System', linewidth=0.5)
+ax3.scatter(fixed_curve_points[:, 0], fixed_curve_points[:, 1], color='blue', s=1, label='Points')
 if len(helix_intersecting_points_2d_smoothed) > 0:
     ax3.plot(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], label='Helix Intersecting Points', linewidth=0.5)
     ax3.scatter(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], color='red', s=1, label='Helix Intersecting Points')
-ax3.legend()
+
+# 标注 x 坐标小于上一个点的点
+if len(anomalies_smoothed) > 0:
+    ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#0053ac', s=10, label='Anomalies')
+
+# 标注 helix_intersecting_points[delete_index] 的原点位置和来源
+if delete_index is not None:
+    ax3.scatter(original_points[:, 0], original_points[:, 1], color='green', s=5, label=f'Original Point from Curve (Turn: {turn_index}, Index: {original_point_index})')
+
+ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.5))  # 调整图例位置
 ax3.set_aspect('equal')
 ax3.set_title('2D Projection of Points and Helix Intersecting Points in New Coordinate System')
 ax3.set_xlabel('X')
@@ -386,12 +405,7 @@ ax3.set_ylabel('Y')
 ax4 = fig.add_subplot(144)
 ax4.plot(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], label='Translated Points', linewidth=0.5)
 ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='Translated Points')
-
-# 标注 x 坐标小于上一个点的点
-if len(anomalies_translated) > 0:
-    ax4.scatter(anomalies_translated[:, 0], anomalies_translated[:, 1], color='blue', s=10, label='Anomalies')
-
-ax4.legend()
+ax4.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
 ax4.set_aspect('equal')
 ax4.set_title('Translated Helix Intersecting Points')
 ax4.set_xlabel('X')
