@@ -5,16 +5,16 @@ from scipy.interpolate import make_interp_spline
 import sys
 
 # 砂轮杆偏移工件中心距离
-gan_distance = 10
+gan_distance = 20
 
 # 砂轮安装角
-gan_angle = 3
+gan_angle = 5
 
 # 工件中径
 mid_dia = 45
 
 # 导程
-work_lead = 20
+work_lead = 45
 
 # 螺旋升角
 angle = np.rad2deg(np.arctan2(work_lead, np.pi * mid_dia))
@@ -24,7 +24,7 @@ print(f'标准螺旋升角: {angle}')
 segment_length = 0.01
 
 # 螺旋曲面绘制次数
-num_turns = 3000
+num_turns = 4500
 # 每个曲面移动角度
 turn_angle = 0.01
 
@@ -327,6 +327,8 @@ for i in range(1, len(helix_intersecting_points_2d)):
         delete_index = i
         break
 
+tangent_anomalies_index = None
+
 # 如果找到这样的点
 if delete_index is not None:
     # 标注该点及后续所有点在 helix_intersecting_points 中的曲面位置
@@ -395,7 +397,8 @@ anomalies_smoothed = np.array(anomalies_smoothed)
 max_y_index_smoothed = np.argmax(helix_intersecting_points_2d_smoothed[:, 1])
 max_y_point_smoothed = helix_intersecting_points_2d_smoothed[max_y_index_smoothed]
 
-print(f'砂轮直径: {max_y_point_smoothed[1] * 2}')
+# 砂轮直径
+wheel_dia = max_y_point_smoothed[1] * 2
 
 # 找到 y 轴最大点作为基准原点
 max_y_index = np.argmax(helix_intersecting_points_2d_smoothed[:, 1])
@@ -558,5 +561,15 @@ ax4.set_aspect('equal')
 ax4.set_title('最终干涉轨迹', pad=20)
 ax4.set_xlabel('X')
 ax4.set_ylabel('Y')
+
+multiline_text = f"钢球直径：3.969\n" \
+                 f"钢球接触角：45\n" \
+                 f"工件中径：{mid_dia:.4f}\n" \
+                 f"工件导程：{work_lead:.4f}\n" \
+                 f"螺旋升角：{angle:.4f}\n" \
+                 f"砂轮安装角：{gan_angle:.4f}\n" \
+                 f"砂轮杆据中心偏移：{gan_distance:.4f}\n" \
+                 f"砂轮直径：{wheel_dia:.4f}"
+fig.text(0.1, 0.95, multiline_text, fontsize=12, color='#000000', ha='left', va='top', wrap=True)
 
 plt.show()
