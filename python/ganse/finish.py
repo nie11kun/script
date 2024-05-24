@@ -4,7 +4,7 @@ import ezdxf
 from scipy.interpolate import make_interp_spline
 
 # 砂轮杆偏移工件中心距离
-gan_distance = 10
+gan_distance = 9
 
 # 砂轮安装角
 gan_angle = 3
@@ -350,6 +350,12 @@ helix_intersecting_points_2d_filtered = helix_intersecting_points_2d_filtered[::
 # 合并点
 helix_intersecting_points_2d_combined = np.vstack((helix_intersecting_points_2d_filtered, helix_intersecting_points_2d_mirrored))
 
+#找出 helix_intersecting_points_2d 中 x 坐标大于 0 的点并镜像复制
+helix_intersecting_points_2d_over = helix_intersecting_points_2d[helix_intersecting_points_2d[:, 0] > 0]
+helix_intersecting_points_2d_over_mirrored = helix_intersecting_points_2d_over.copy()
+helix_intersecting_points_2d_over_mirrored[:, 0] = -helix_intersecting_points_2d_over_mirrored[:, 0]
+helix_intersecting_points_2d_over_combined = np.vstack((helix_intersecting_points_2d_over, helix_intersecting_points_2d_over_mirrored))
+
 # 获取 curve_points 的点个数
 num_curve_points = len(curve_points)
 
@@ -507,6 +513,10 @@ if len(helix_intersecting_points_2d_smoothed) > 0:
 # 标注 x 坐标小于上一个点的点
 if len(anomalies_smoothed) > 0:
     ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#0053ac', s=10, label='Anomalies')
+
+# 标注 曲线上有交叉的点
+if len(helix_intersecting_points_2d_over_combined) > 0:
+    ax3.scatter(helix_intersecting_points_2d_over_combined[:, 0], helix_intersecting_points_2d_over_combined[:, 1], color='#0053ac', s=10, label='Anomalies')
 
 # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
 if delete_index is not None:
