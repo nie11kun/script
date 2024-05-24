@@ -5,7 +5,7 @@ from scipy.interpolate import make_interp_spline
 import sys
 
 # 砂轮杆偏移工件中心距离
-gan_distance = 12
+gan_distance = 10
 
 # 砂轮安装角
 gan_angle = 3
@@ -345,6 +345,10 @@ if delete_index is not None:
     original_points_mirrored[:, 0] = -original_points_mirrored[:, 0]
     original_points_combined = np.vstack((original_points, original_points_mirrored))
 
+    # 第一个不符合条件的点在原始曲线中的切线斜率
+    tangent_anomalies_index = calculate_tangent(fixed_curve_points, original_point_index)
+    anomalies_ang = 90 - np.degrees(np.tan(tangent_anomalies_index[0] / tangent_anomalies_index[1]))
+
 # 去掉 helix_intersecting_points_2d 中 x 坐标大于 0 的点
 helix_intersecting_points_2d_filtered = helix_intersecting_points_2d[helix_intersecting_points_2d[:, 0] <= 0]
 
@@ -529,6 +533,10 @@ if len(helix_intersecting_points_2d_over_combined) > 0:
 # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
 if delete_index is not None:
     ax3.scatter(original_points_combined[:, 0], original_points_combined[:, 1], color='green', s=5, label=f'Original Point from Curve (Turn: {turn_index}, Index: {original_point_index})')
+
+# 标注原始曲线中第一个不符合条件的点的切线斜率
+if tangent_anomalies_index is not None:
+    ax3.quiver(original_points[0, 0], original_points[0, 1], tangent_anomalies_index[0], tangent_anomalies_index[1], color='red', scale=5, label=f'tangent_anomalies angle: {anomalies_ang}')
 
 ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.5))  # 调整图例位置
 ax3.set_aspect('equal')
