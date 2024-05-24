@@ -5,7 +5,7 @@ from scipy.interpolate import make_interp_spline
 import sys
 
 # 砂轮杆偏移工件中心距离
-gan_distance = 20
+gan_distance = 18
 
 # 砂轮安装角
 gan_angle = 5
@@ -30,6 +30,8 @@ turn_angle = 0.01
 
 # 判断法线是否相交的最小距离
 min_distance = 0.001
+
+# ********************************
 
 # 定义一个函数，从 DXF 文件中加载曲线，并仅保留 XY 坐标，同时应用偏移和等距离散化
 def load_dxf_curve(filename, offset=np.array([0, 30]), segment_length=0.01):
@@ -253,6 +255,8 @@ def calculate_angle(tangent, vertical=np.array([0, -1])):
     angle = np.arccos(dot_product)
     return np.degrees(angle)
 
+# ********************************
+
 # 定义新坐标系的原点
 new_origin = np.array([0, gan_distance, 0])
 
@@ -272,14 +276,20 @@ transformation_matrix = np.array([u, v, w]).T
 # 偏移量
 offset = np.array([0, mid_dia / 2])
 
+# ********************************
+
 # 从 DXF 文件加载曲线，并应用偏移
 dxf_filename = 'test.dxf'  # DXF 文件名
 curve_points = load_dxf_curve(dxf_filename, offset, segment_length)
+
+# 将 dxf 曲线转换为 3 维坐标并平移到新坐标系原点
 fixed_curve_points = np.hstack((curve_points, np.zeros((curve_points.shape[0], 1))))
 fixed_curve_points = fixed_curve_points - new_origin
 
 # 计算曲线点的法线
 normals = compute_normals(curve_points)
+
+# ********************************
 
 # 选择旋转的基准点，这里选择曲线的中点
 pivot = np.array([0, 0])
@@ -290,25 +300,13 @@ rotated_points, rotated_normals = rotate_points_and_normals(curve_points, normal
 # 找到与指定直线相交的点
 line_point = new_origin  # 新坐标系中直线的一点
 line_direction = u  # 新坐标系中直线的方向
-intersecting_points = find_intersecting_points(rotated_points, rotated_normals, line_point, line_direction, min_distance)
-
-# 将旋转后的点和法线转换到新坐标系中
-points_translated = rotated_points - new_origin
-points_new_coordinate_system = points_translated @ transformation_matrix
-normals_translated = rotated_normals[:, :3]  # 确保法线是三维的
-normals_new_coordinate_system = normals_translated @ transformation_matrix
-
-# 将相交点转换到新坐标系中
-intersecting_points_translated = intersecting_points - new_origin
-intersecting_points_new_coordinate_system = intersecting_points_translated @ transformation_matrix
-
-# 将相交的点旋转到新坐标系的 xy 平面
-points_2d = rotate_to_xy_plane(intersecting_points_new_coordinate_system)
 
 # 自动计算 turn_distance
 turn_distance = work_lead / 360
 
 helix_surface_points, helix_surface_normals, point_indices = generate_helix_surface(rotated_points, rotated_normals, num_turns, turn_angle, turn_distance)
+
+# ********************************
 
 # 计算螺旋曲面上每条曲线上的点的法线是否与新坐标系上的直线相交
 helix_intersecting_points = find_intersecting_points(helix_surface_points, helix_surface_normals, line_point, line_direction, min_distance)
@@ -319,6 +317,8 @@ helix_intersecting_points_new_coordinate_system = helix_intersecting_points_tran
 
 # 将 helix_intersecting_points 转换到新坐标系的 xy 平面
 helix_intersecting_points_2d = rotate_to_xy_plane(helix_intersecting_points_new_coordinate_system)
+
+# ********************************
 
 # 查找第一个 x 和 y 坐标都大于前一个点的点的索引
 delete_index = None
@@ -376,6 +376,8 @@ num_curve_points = len(curve_points)
 # 将 helix_intersecting_points_2d_combined 处理成平滑曲线上的点，点个数与 curve_points 一致
 helix_intersecting_points_2d_smoothed = smooth_curve(helix_intersecting_points_2d_combined, num_curve_points)
 
+# ********************************
+
 # 标注 helix_intersecting_points_2d_smoothed 中 x 坐标小于上一个点的点
 anomalies_smoothed = []
 
@@ -393,12 +395,21 @@ for i in range(len(helix_intersecting_points_2d_smoothed) - 1):
 
 anomalies_smoothed = np.array(anomalies_smoothed)
 
+# 如果反向弯折的点过多则报错
+if len(anomalies_smoothed / 2) > 50:
+    print("干涉曲线齿根反向弯折的点过多,需要加大砂轮安装角或加大砂轮杆偏移工件中心距离")
+    sys.exit()
+
+# ********************************
+
 # 获取 helix_intersecting_points_2d_smoothed 中 y 坐标最大点
 max_y_index_smoothed = np.argmax(helix_intersecting_points_2d_smoothed[:, 1])
 max_y_point_smoothed = helix_intersecting_points_2d_smoothed[max_y_index_smoothed]
 
 # 砂轮直径
 wheel_dia = max_y_point_smoothed[1] * 2
+
+# ********************************
 
 # 找到 y 轴最大点作为基准原点
 max_y_index = np.argmax(helix_intersecting_points_2d_smoothed[:, 1])
@@ -427,6 +438,8 @@ helix_intersecting_points_2d_translated = np.delete(helix_intersecting_points_2d
 
 # 处理 helix_intersecting_points_2d_translated 使其等距，并将最高点设为 (0,0)
 helix_intersecting_points_2d_translated = redistribute_points_equally(helix_intersecting_points_2d_translated, num_curve_points)
+
+# ********************************
 
 # 获取最高点
 max_y_index = np.argmax(helix_intersecting_points_2d_translated[:, 1])
@@ -469,18 +482,7 @@ else:
 first_point = helix_intersecting_points_2d_translated[0]
 last_point = helix_intersecting_points_2d_translated[-1]
 
-# 打印第一个点和最后一个点的坐标
-print(f"First point: {first_point}")
-print(f"Last point: {last_point}")
-print(f"Height difference between max and min points: {height_difference:.2f}")
-if angle_before_max is not None:
-    print(f"Angle before max point: {angle_before_max:.2f} degrees")
-if angle_after_max is not None:
-    print(f"Angle after max point: {angle_after_max:.2f} degrees")
-if angle_second is not None:
-    print(f"Angle at second point: {angle_second:.2f} degrees")
-if angle_penultimate is not None:
-    print(f"Angle at penultimate point: {angle_penultimate:.2f} degrees")
+# ********************************
 
 # 拆分成两个数组
 right_points = helix_intersecting_points_2d_translated[helix_intersecting_points_2d_translated[:, 0] < 0]
@@ -540,6 +542,8 @@ file_content += "RET\n"
 # 将内容写入文件
 with open("output.txt", "w", encoding="utf-8") as f:
     f.write(file_content)
+
+# ********************************
 
 # 设置中文字体
 # 这里以 SimHei 字体为例，确保系统中已安装该字体
