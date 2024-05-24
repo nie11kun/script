@@ -484,6 +484,21 @@ last_point = helix_intersecting_points_2d_translated[-1]
 
 # ********************************
 
+head_content = f"""
+;********************************
+DEF REAL VER_MODE,WHEEL_DIA
+DEF AXIS AX_HORI,AX_VER
+AX_HORI=AXNAME(AXIS_HORI)
+AX_VER=AXNAME(AXIS_VER)
+VER_MODE=DRESSER[50]
+WHEEL_DIA=DRESSER[24]
+;********************************
+"""
+
+# 将内容写入文件
+with open("output.txt", "w", encoding="utf-8") as f:
+    f.write(head_content)
+
 # 拆分成两个数组
 right_points = helix_intersecting_points_2d_translated[helix_intersecting_points_2d_translated[:, 0] < 0]
 left_points = helix_intersecting_points_2d_translated[helix_intersecting_points_2d_translated[:, 0] >= 0]
@@ -491,20 +506,16 @@ left_points = helix_intersecting_points_2d_translated[helix_intersecting_points_
 # x 坐标小于0的点反向排序
 right_points = right_points[::-1]
 
+# 将直径转换为4位小数的字符串
+wheel_dia_str = f"{wheel_dia:.4f}"
+
+# 将小数点替换为下划线
+wheel_dia_str = wheel_dia_str.replace('.', '_')
+
 # 准备写入文件的内容
-file_content = f""";********************************
-DEF REAL VER_MODE,WHEEL_DIA
-DEF AXIS AX_HORI,AX_VER
-AX_HORI=AXNAME(AXIS_HORI)
-AX_VER=AXNAME(AXIS_VER)
-VER_MODE=DRESSER[50]
-WHEEL_DIA=DRESSER[24]
-
-IF (WHEEL_DIA>={wheel_dia:.4f}) GOTOF DIA_36_00;
-IF (WHEEL_DIA<{wheel_dia:.4f}) AND (WHEEL_DIA>=35.60) GOTOF DIA_35_60;
-IF (WHEEL_DIA<26.00) GOTOF DIA_0000;
-
-DIA_36_00:
+file_content = f"""
+;********************************
+DIA_{wheel_dia_str}:
 IF DRESSER[40]==1;
 ;*********************************************
 DRESSER[41]={angle_before_max:.4f};外部齿形程序右起点角度(竖直向下夹角)
@@ -540,7 +551,7 @@ for point in left_points:
 file_content += "RET\n"
 
 # 将内容写入文件
-with open("output.txt", "w", encoding="utf-8") as f:
+with open("output.txt", "a", encoding="utf-8") as f:
     f.write(file_content)
 
 # ********************************
