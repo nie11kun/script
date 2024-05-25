@@ -290,38 +290,18 @@ def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead):
 
     # ********************************
 
-    # 将直径转换为4位小数的字符串
-    wheel_dia_str = f"{wheel_dia:.4f}"
-
-    # 将小数点替换为下划线
-    wheel_dia_str = wheel_dia_str.replace('.', '_')
-
-    head_content = f"""
-    ;********************************
-    DEF REAL VER_MODE,WHEEL_DIA
-    DEF AXIS AX_HORI,AX_VER
-    AX_HORI=AXNAME(AXIS_HORI)
-    AX_VER=AXNAME(AXIS_VER)
-    VER_MODE=DRESSER[50]
-    WHEEL_DIA=DRESSER[24]
-    ;********************************
-
-    IF (WHEEL_DIA>={wheel_dia:.4f}) GOTOF DIA_{wheel_dia_str};
-    IF (WHEEL_DIA<{wheel_dia:.4f}) GOTOF DIA_{wheel_dia_str};
-
-    ;********************************
-    """
-
-    # 将内容写入文件
-    with open("output.txt", "w", encoding="utf-8") as f:
-        f.write(head_content)
-
     # 拆分成两个数组
     right_points = helix_intersecting_points_2d_translated[helix_intersecting_points_2d_translated[:, 0] < 0]
     left_points = helix_intersecting_points_2d_translated[helix_intersecting_points_2d_translated[:, 0] >= 0]
 
     # x 坐标小于0的点反向排序
     right_points = right_points[::-1]
+
+    # 将直径转换为4位小数的字符串
+    wheel_dia_str = f"{wheel_dia:.4f}"
+
+    # 将小数点替换为下划线
+    wheel_dia_str = wheel_dia_str.replace('.', '_')
 
     # 准备写入文件的内容
     file_content = f"""
@@ -360,10 +340,6 @@ def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead):
         file_content += f"AX[AX_VER]={-1 * point[1]:.4f}*VER_MODE   AX[AX_HORI]={point[0]:.4f}\n"
 
     file_content += "RET\n"
-
-    # 将内容写入文件
-    with open("output.txt", "a", encoding="utf-8") as f:
-        f.write(file_content)
 
     # ********************************
 
@@ -479,4 +455,4 @@ def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead):
 
     plt.show()
 
-    return helix_intersecting_points_2d_translated
+    return wheel_dia, file_content

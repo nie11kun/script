@@ -226,3 +226,16 @@ def calculate_angle(tangent, vertical=np.array([0, -1])):
     dot_product = np.dot(tangent, vertical)
     angle = np.arccos(dot_product)
     return np.degrees(angle)
+
+# 删除文本文档中每一行开头的空格
+def remove_leading_whitespace(input_file, output_file):
+    # 读取文件内容
+    with open(input_file, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+
+    # 去除每行开头的空格和缩进
+    cleaned_lines = [line.lstrip() for line in lines]
+
+    # 将处理后的内容写回到新文件
+    with open(output_file, 'w', encoding='utf-8') as file:
+        file.writelines(cleaned_lines)
