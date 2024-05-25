@@ -241,6 +241,9 @@ def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead, if_plot=F
 
     # ********************************
 
+    # 将所有点坐标放入字符串中，每行按照 'x 空格 y' 的模式
+    point_string = "\n".join([f"{x} {y}" for x, y in helix_intersecting_points_2d_translated])
+
     # 获取最高点
     max_y_index = np.argmax(helix_intersecting_points_2d_translated[:, 1])
     min_y_index = np.argmin(helix_intersecting_points_2d_translated[:, 1])
@@ -456,4 +459,4 @@ def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead, if_plot=F
 
         plt.show()
 
-    return wheel_dia, file_content
+    return wheel_dia, file_content, point_string
