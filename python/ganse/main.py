@@ -13,7 +13,7 @@ mid_dia = 45
 # 导程
 work_lead = 45
 
-wheel_dia, file_content = curve_to_wheel_points(gan_distance=gan_distance, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead)
+wheel_dia, file_content = curve_to_wheel_points(gan_distance=gan_distance, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead, if_plot=True)
 
 # 将直径转换为4位小数的字符串
 wheel_dia_str = f"{wheel_dia:.4f}"

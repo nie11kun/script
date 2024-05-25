@@ -4,7 +4,7 @@ import sys
 import platform
 import library.calc as libs
 
-def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead):
+def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead, if_plot=False):
     # 螺旋升角
     angle = np.rad2deg(np.arctan2(work_lead, np.pi * mid_dia))
     print(f'标准螺旋升角: {angle:.4f}')
@@ -343,116 +343,117 @@ def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead):
 
     # ********************************
 
-    # 设置中文字体
+    if if_plot is True:
+        # 设置中文字体
 
-    # 检测操作系统
-    current_os = platform.system()
+        # 检测操作系统
+        current_os = platform.system()
 
-    # 根据操作系统设置字体
-    if current_os == 'Windows':
-        plt.rcParams['font.family'] = 'SimHei'
-    elif current_os == 'Darwin':  # macOS
-        plt.rcParams['font.family'] = 'Heiti TC'
-    else:
-        plt.rcParams['font.family'] = 'Noto Sans CJK JP'
+        # 根据操作系统设置字体
+        if current_os == 'Windows':
+            plt.rcParams['font.family'] = 'SimHei'
+        elif current_os == 'Darwin':  # macOS
+            plt.rcParams['font.family'] = 'Heiti TC'
+        else:
+            plt.rcParams['font.family'] = 'Noto Sans CJK JP'
 
-    plt.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号 '-' 显示为方块的问题
+        plt.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号 '-' 显示为方块的问题
 
-    # 绘制结果
-    fig = plt.figure(figsize=(28, 7))  # 调整fig大小以包含4张图
+        # 绘制结果
+        fig = plt.figure(figsize=(28, 7))  # 调整fig大小以包含4张图
 
-    # 绘制原始曲线，不显示法线
-    ax1 = fig.add_subplot(141)
-    ax1.plot(curve_points[:, 0], curve_points[:, 1], label='标准齿形轨迹')
-    # 屏蔽法线显示
-    # ax1.quiver(curve_points[:, 0], curve_points[:, 1], normals[:, 0], normals[:, 1], color='red', scale=20, label='Normals')
-    ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
-    ax1.set_aspect('equal')
-    ax1.set_title('标准齿形', pad=20)  # 调整标题位置
-    ax1.set_xlabel('X')
-    ax1.set_ylabel('Y')
+        # 绘制原始曲线，不显示法线
+        ax1 = fig.add_subplot(141)
+        ax1.plot(curve_points[:, 0], curve_points[:, 1], label='标准齿形轨迹')
+        # 屏蔽法线显示
+        # ax1.quiver(curve_points[:, 0], curve_points[:, 1], normals[:, 0], normals[:, 1], color='red', scale=20, label='Normals')
+        ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
+        ax1.set_aspect('equal')
+        ax1.set_title('标准齿形', pad=20)  # 调整标题位置
+        ax1.set_xlabel('X')
+        ax1.set_ylabel('Y')
 
-    # 绘制旋转后的曲线和法线，以及螺旋曲面上的点
-    ax2 = fig.add_subplot(142, projection='3d')
-    ax2.plot(helix_surface_points_right[:, 0], helix_surface_points_right[:, 1], helix_surface_points_right[:, 2], label='右侧螺旋曲面')
-    ax2.scatter(helix_intersecting_points_right[:, 0], helix_intersecting_points_right[:, 1], helix_intersecting_points_right[:, 2], color='yellow', s=10, label='右侧砂轮接触点')
-    ax2.plot(helix_surface_points_left[:, 0], helix_surface_points_left[:, 1], helix_surface_points_left[:, 2], label='左侧螺旋曲面')
-    ax2.scatter(helix_intersecting_points_left[:, 0], helix_intersecting_points_left[:, 1], helix_intersecting_points_left[:, 2], color='yellow', s=10, label='左侧砂轮接触点')
+        # 绘制旋转后的曲线和法线，以及螺旋曲面上的点
+        ax2 = fig.add_subplot(142, projection='3d')
+        ax2.plot(helix_surface_points_right[:, 0], helix_surface_points_right[:, 1], helix_surface_points_right[:, 2], label='右侧螺旋曲面')
+        ax2.scatter(helix_intersecting_points_right[:, 0], helix_intersecting_points_right[:, 1], helix_intersecting_points_right[:, 2], color='yellow', s=10, label='右侧砂轮接触点')
+        ax2.plot(helix_surface_points_left[:, 0], helix_surface_points_left[:, 1], helix_surface_points_left[:, 2], label='左侧螺旋曲面')
+        ax2.scatter(helix_intersecting_points_left[:, 0], helix_intersecting_points_left[:, 1], helix_intersecting_points_left[:, 2], color='yellow', s=10, label='左侧砂轮接触点')
 
-    # 标注异常点及后续所有点在曲面中的位置
-    if delete_index_right is not None:
-        ax2.scatter(anomalous_points_right[:, 0], anomalous_points_right[:, 1], anomalous_points_right[:, 2], color='red', s=20, label='右侧异常接触点')
-    if delete_index_left is not None:
-        ax2.scatter(anomalous_points_left[:, 0], anomalous_points_left[:, 1], anomalous_points_left[:, 2], color='red', s=20, label='左侧异常接触点')
+        # 标注异常点及后续所有点在曲面中的位置
+        if delete_index_right is not None:
+            ax2.scatter(anomalous_points_right[:, 0], anomalous_points_right[:, 1], anomalous_points_right[:, 2], color='red', s=20, label='右侧异常接触点')
+        if delete_index_left is not None:
+            ax2.scatter(anomalous_points_left[:, 0], anomalous_points_left[:, 1], anomalous_points_left[:, 2], color='red', s=20, label='左侧异常接触点')
 
-    ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2))  # 调整图例位置
-    ax2.set_title('滚道加工面', pad=20)  # 调整标题位置
-    ax2.set_xlabel('X')
-    ax2.set_ylabel('Y')
-    ax2.set_zlabel('Z')
-    ax2.quiver(new_origin[0], new_origin[1], new_origin[2], u[0], u[1], u[2], length=5, color='r', label='New X-axis')
-    ax2.quiver(new_origin[0], new_origin[1], new_origin[2], v[0], v[1], v[2], length=5, color='g', label='New Y-axis')
-    ax2.quiver(new_origin[0], new_origin[1], new_origin[2], w[0], w[1], w[2], length=5, color='b', label='New Z-axis')
+        ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2))  # 调整图例位置
+        ax2.set_title('滚道加工面', pad=20)  # 调整标题位置
+        ax2.set_xlabel('X')
+        ax2.set_ylabel('Y')
+        ax2.set_zlabel('Z')
+        ax2.quiver(new_origin[0], new_origin[1], new_origin[2], u[0], u[1], u[2], length=5, color='r', label='New X-axis')
+        ax2.quiver(new_origin[0], new_origin[1], new_origin[2], v[0], v[1], v[2], length=5, color='g', label='New Y-axis')
+        ax2.quiver(new_origin[0], new_origin[1], new_origin[2], w[0], w[1], w[2], length=5, color='b', label='New Z-axis')
 
-    # 设置 ax2 的坐标比例
-    ax2.set_box_aspect([1, 1, 1])  # 设置为等比例
+        # 设置 ax2 的坐标比例
+        ax2.set_box_aspect([1, 1, 1])  # 设置为等比例
 
-    # 绘制螺旋曲面相交点旋转到新坐标系二维平面
-    ax3 = fig.add_subplot(143)
-    ax3.plot(fixed_curve_points[:, 0], fixed_curve_points[:, 1], label='标准齿形轨迹', linewidth=0.5)
-    ax3.scatter(fixed_curve_points[:, 0], fixed_curve_points[:, 1], color='blue', s=1, label='标准齿形轨迹点')
-    if len(helix_intersecting_points_2d_smoothed) > 0:
-        ax3.plot(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], label='干涉砂轮齿形轨迹', linewidth=0.5)
-        ax3.scatter(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], color='red', s=1, label='干涉砂轮齿形轨迹点')
+        # 绘制螺旋曲面相交点旋转到新坐标系二维平面
+        ax3 = fig.add_subplot(143)
+        ax3.plot(fixed_curve_points[:, 0], fixed_curve_points[:, 1], label='标准齿形轨迹', linewidth=0.5)
+        ax3.scatter(fixed_curve_points[:, 0], fixed_curve_points[:, 1], color='blue', s=1, label='标准齿形轨迹点')
+        if len(helix_intersecting_points_2d_smoothed) > 0:
+            ax3.plot(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], label='干涉砂轮齿形轨迹', linewidth=0.5)
+            ax3.scatter(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], color='red', s=1, label='干涉砂轮齿形轨迹点')
 
-    # 标注 x 坐标小于上一个点的点
-    if len(anomalies_smoothed) > 0:
-        ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#0053ac', s=10, label='齿底异常点')
+        # 标注 x 坐标小于上一个点的点
+        if len(anomalies_smoothed) > 0:
+            ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#0053ac', s=10, label='齿底异常点')
 
-    # 标注 曲线上有交叉的点
-    if len(helix_intersecting_points_2d_over_combined) > 0:
-        ax3.scatter(helix_intersecting_points_2d_over_combined[:, 0], helix_intersecting_points_2d_over_combined[:, 1], color='#1f5793', s=10, label='齿顶异常点')
+        # 标注 曲线上有交叉的点
+        if len(helix_intersecting_points_2d_over_combined) > 0:
+            ax3.scatter(helix_intersecting_points_2d_over_combined[:, 0], helix_intersecting_points_2d_over_combined[:, 1], color='#1f5793', s=10, label='齿顶异常点')
 
-    # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
-    if delete_index_right is not None:
-        ax3.scatter(original_points_abnormal_right[:, 0], original_points_abnormal_right[:, 1], color='green', s=5, label=f'异常点在原始轨道的右侧位置 (螺旋圈数: {turn_index_right}, 点位号: {original_point_index_right})')
-    if delete_index_left is not None:
-        ax3.scatter(original_points_abnormal_left[:, 0], original_points_abnormal_left[:, 1], color='green', s=5, label=f'异常点在原始轨道的左侧位置 (螺旋圈数: {turn_index_left}, 点位号: {original_point_index_left})')
+        # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
+        if delete_index_right is not None:
+            ax3.scatter(original_points_abnormal_right[:, 0], original_points_abnormal_right[:, 1], color='green', s=5, label=f'异常点在原始轨道的右侧位置 (螺旋圈数: {turn_index_right}, 点位号: {original_point_index_right})')
+        if delete_index_left is not None:
+            ax3.scatter(original_points_abnormal_left[:, 0], original_points_abnormal_left[:, 1], color='green', s=5, label=f'异常点在原始轨道的左侧位置 (螺旋圈数: {turn_index_left}, 点位号: {original_point_index_left})')
 
-    # 标注原始曲线中第一个不符合条件的点的切线斜率
-    if tangent_anomalies_index_right is not None:
-        ax3.quiver(original_points_abnormal_right[0, 0], original_points_abnormal_right[0, 1], tangent_anomalies_index_right[0], tangent_anomalies_index_right[1], color='red', scale=5, label=f'右侧第一个异常点的切线斜率: {anomalies_ang_right:.4f}')
-    if tangent_anomalies_index_left is not None:
-        ax3.quiver(original_points_abnormal_left[-1, 0], original_points_abnormal_left[-1, 1], tangent_anomalies_index_left[0], tangent_anomalies_index_left[1], color='red', scale=5, label=f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}')
+        # 标注原始曲线中第一个不符合条件的点的切线斜率
+        if tangent_anomalies_index_right is not None:
+            ax3.quiver(original_points_abnormal_right[0, 0], original_points_abnormal_right[0, 1], tangent_anomalies_index_right[0], tangent_anomalies_index_right[1], color='red', scale=5, label=f'右侧第一个异常点的切线斜率: {anomalies_ang_right:.4f}')
+        if tangent_anomalies_index_left is not None:
+            ax3.quiver(original_points_abnormal_left[-1, 0], original_points_abnormal_left[-1, 1], tangent_anomalies_index_left[0], tangent_anomalies_index_left[1], color='red', scale=5, label=f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}')
 
-    ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.5))  # 调整图例位置
-    ax3.set_aspect('equal')
-    ax3.set_title('原始轨迹与干涉轨迹对比')
-    ax3.set_xlabel('X')
-    ax3.set_ylabel('Y')
+        ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.5))  # 调整图例位置
+        ax3.set_aspect('equal')
+        ax3.set_title('原始轨迹与干涉轨迹对比')
+        ax3.set_xlabel('X')
+        ax3.set_ylabel('Y')
 
-    # 绘制平移后的点到第4张图
-    ax4 = fig.add_subplot(144)
-    ax4.plot(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], label='优化后的干涉轨迹曲线', linewidth=0.5)
-    ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='优化后的干涉轨迹点')
-    ax4.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
-    ax4.set_aspect('equal')
-    ax4.set_title('最终干涉轨迹', pad=20)
-    ax4.set_xlabel('X')
-    ax4.set_ylabel('Y')
+        # 绘制平移后的点到第4张图
+        ax4 = fig.add_subplot(144)
+        ax4.plot(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], label='优化后的干涉轨迹曲线', linewidth=0.5)
+        ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='优化后的干涉轨迹点')
+        ax4.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
+        ax4.set_aspect('equal')
+        ax4.set_title('最终干涉轨迹', pad=20)
+        ax4.set_xlabel('X')
+        ax4.set_ylabel('Y')
 
-    multiline_text = f"钢球直径：3.969\n" \
-                    f"钢球接触角：45\n" \
-                    f"工件中径：{mid_dia:.4f}\n" \
-                    f"工件导程：{work_lead:.4f}\n" \
-                    f"螺旋升角：{angle:.4f}\n" \
-                    f"砂轮安装角：{gan_angle:.4f}\n" \
-                    f"砂轮杆据中心偏移：{gan_distance:.4f}\n" \
-                    f"砂轮直径：{wheel_dia:.4f}\n" \
-                    f"砂轮齿高：{height_difference:.4f}\n" \
-                    f"砂轮齿宽：{width_max:.4f}"
-    fig.text(0.1, 0.95, multiline_text, fontsize=12, color='#000000', ha='left', va='top', wrap=True)
+        multiline_text = f"钢球直径：3.969\n" \
+                        f"钢球接触角：45\n" \
+                        f"工件中径：{mid_dia:.4f}\n" \
+                        f"工件导程：{work_lead:.4f}\n" \
+                        f"螺旋升角：{angle:.4f}\n" \
+                        f"砂轮安装角：{gan_angle:.4f}\n" \
+                        f"砂轮杆据中心偏移：{gan_distance:.4f}\n" \
+                        f"砂轮直径：{wheel_dia:.4f}\n" \
+                        f"砂轮齿高：{height_difference:.4f}\n" \
+                        f"砂轮齿宽：{width_max:.4f}"
+        fig.text(0.1, 0.95, multiline_text, fontsize=12, color='#000000', ha='left', va='top', wrap=True)
 
-    plt.show()
+        plt.show()
 
     return wheel_dia, file_content
