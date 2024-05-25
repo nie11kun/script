@@ -4,6 +4,7 @@ import ezdxf
 from scipy.interpolate import make_interp_spline
 import sys
 import platform
+import numba
 
 # 砂轮杆偏移工件中心距离
 gan_distance = 18
@@ -107,6 +108,7 @@ def rotate_points_and_normals(points, normals, angle, pivot=np.array([0, 0])):
     return rotated_points, rotated_normals
 
 # 计算两条直线之间的最短距离
+@numba.jit(nopython=True)
 def line_to_line_distance(p1, d1, p2, d2):
     cross_prod = np.cross(d1, d2)
     norm_cross_prod = np.linalg.norm(cross_prod)
