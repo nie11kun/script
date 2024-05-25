@@ -305,71 +305,106 @@ line_direction = u  # 新坐标系中直线的方向
 # 自动计算 turn_distance
 turn_distance = work_lead / 360
 
-helix_surface_points, helix_surface_normals, point_indices = generate_helix_surface(rotated_points, rotated_normals, num_turns, turn_angle, turn_distance)
+helix_surface_points_right, helix_surface_normals_right, point_indices_right = generate_helix_surface(rotated_points, rotated_normals, num_turns, turn_angle, turn_distance)
+helix_surface_points_left, helix_surface_normals_left, point_indices_left = generate_helix_surface(rotated_points, rotated_normals, num_turns, -1 * turn_angle, turn_distance)
 
 # ********************************
 
 # 计算螺旋曲面上每条曲线上的点的法线是否与新坐标系上的直线相交
-helix_intersecting_points = find_intersecting_points(helix_surface_points, helix_surface_normals, line_point, line_direction, min_distance)
+helix_intersecting_points_right = find_intersecting_points(helix_surface_points_right, helix_surface_normals_right, line_point, line_direction, min_distance)
+helix_intersecting_points_left = find_intersecting_points(helix_surface_points_left, helix_surface_normals_left, line_point, line_direction, min_distance)
 
 # 将 helix_intersecting_points 转换到新坐标系中
-helix_intersecting_points_translated = helix_intersecting_points - new_origin
-helix_intersecting_points_new_coordinate_system = helix_intersecting_points_translated @ transformation_matrix
+helix_intersecting_points_translated_right = helix_intersecting_points_right - new_origin
+helix_intersecting_points_new_coordinate_system_right = helix_intersecting_points_translated_right @ transformation_matrix
+helix_intersecting_points_translated_left = helix_intersecting_points_left - new_origin
+helix_intersecting_points_new_coordinate_system_left = helix_intersecting_points_translated_left @ transformation_matrix
 
 # 将 helix_intersecting_points 转换到新坐标系的 xy 平面
-helix_intersecting_points_2d = rotate_to_xy_plane(helix_intersecting_points_new_coordinate_system)
+helix_intersecting_points_2d_right = rotate_to_xy_plane(helix_intersecting_points_new_coordinate_system_right)
+helix_intersecting_points_2d_left = rotate_to_xy_plane(helix_intersecting_points_new_coordinate_system_left)
 
 # ********************************
 
-# 查找第一个 x 和 y 坐标都大于前一个点的点的索引
-delete_index = None
-for i in range(1, len(helix_intersecting_points_2d)):
-    if helix_intersecting_points_2d[i, 0] > helix_intersecting_points_2d[i-1, 0] and helix_intersecting_points_2d[i, 1] > helix_intersecting_points_2d[i-1, 1]:
-        delete_index = i
+# 右侧点 查找第一个 x 和 y 坐标都大于前一个点的点的索引
+delete_index_right = None
+for i in range(1, len(helix_intersecting_points_2d_right)):
+    if helix_intersecting_points_2d_right[i, 0] > helix_intersecting_points_2d_right[i-1, 0] and helix_intersecting_points_2d_right[i, 1] > helix_intersecting_points_2d_right[i-1, 1]:
+        delete_index_right = i
         break
 
-tangent_anomalies_index = None
+tangent_anomalies_index_right = None
 
 # 如果找到这样的点
-if delete_index is not None:
+if delete_index_right is not None:
     # 标注该点及后续所有点在 helix_intersecting_points 中的曲面位置
-    anomalous_points = helix_intersecting_points[delete_index:]
+    anomalous_points_right = helix_intersecting_points_right[delete_index_right:]
     
     # 删除该点及后续所有点
-    helix_intersecting_points_2d = helix_intersecting_points_2d[:delete_index]
+    helix_intersecting_points_2d_right = helix_intersecting_points_2d_right[:delete_index_right]
 
-    point_to_find = helix_intersecting_points[delete_index]
-    helix_index = np.where((helix_surface_points == point_to_find).all(axis=1))[0][0]
-    original_point_index, turn_index = point_indices[helix_index]
+    # 找到不正常点在原始曲线中的位置
+    point_to_find = helix_intersecting_points_right[delete_index_right]
+    helix_index = np.where((helix_surface_points_right == point_to_find).all(axis=1))[0][0]
+    original_point_index_right, turn_index_right = point_indices_right[helix_index]
 
-    # 在第3张图中标注该点
-    original_points_abnormal = fixed_curve_points[original_point_index:]
-    original_points_abnormal_mirrored = original_points_abnormal.copy()
-    original_points_abnormal_mirrored[:, 0] = -original_points_abnormal_mirrored[:, 0]
-    original_points_abnormal_combined = np.vstack((original_points_abnormal, original_points_abnormal_mirrored))
+    # 原始曲线中的位置标注
+    original_points_abnormal_right = fixed_curve_points[original_point_index_right:]
 
     # 第一个不符合条件的点在原始曲线中的切线斜率
-    tangent_anomalies_index = calculate_tangent(fixed_curve_points, original_point_index)
-    anomalies_ang = 90 - np.degrees(np.tan(tangent_anomalies_index[0] / tangent_anomalies_index[1]))
+    tangent_anomalies_index_right = calculate_tangent(fixed_curve_points, original_point_index_right)
+    anomalies_ang_right = 90 - np.degrees(np.tan(tangent_anomalies_index_right[0] / tangent_anomalies_index_right[1]))
 
-# 去掉 helix_intersecting_points_2d 中 x 坐标大于 0 的点
-helix_intersecting_points_2d_filtered = helix_intersecting_points_2d[helix_intersecting_points_2d[:, 0] <= 0]
+# 左侧点 查找第一个 x 坐标小于前一个点 和 y 坐标大于前一个点的点的索引
+delete_index_left = None
+for i in range(1, len(helix_intersecting_points_2d_left)):
+    if helix_intersecting_points_2d_left[i, 0] < helix_intersecting_points_2d_left[i-1, 0] and helix_intersecting_points_2d_left[i, 1] > helix_intersecting_points_2d_left[i-1, 1]:
+        delete_index_left = i
+        break
 
-# 镜像复制 helix_intersecting_points_2d_filtered 沿着 X 轴并合并
-helix_intersecting_points_2d_mirrored = helix_intersecting_points_2d_filtered.copy()
-helix_intersecting_points_2d_mirrored[:, 0] = -helix_intersecting_points_2d_mirrored[:, 0]
+tangent_anomalies_index_left = None
 
-# 将 helix_intersecting_points_2d_filtered 反向排序
-helix_intersecting_points_2d_filtered = helix_intersecting_points_2d_filtered[::-1]
+if delete_index_left is not None:
+    # 标注该点及后续所有点在 helix_intersecting_points 中的曲面位置
+    anomalous_points_left = helix_intersecting_points_left[delete_index_left:]
+    
+    # 删除该点及后续所有点
+    helix_intersecting_points_2d_left = helix_intersecting_points_2d_left[:delete_index_left]
+
+    # 找到不正常点在原始曲线中的位置
+    point_to_find = helix_intersecting_points_left[delete_index_left]
+    helix_index = np.where((helix_surface_points_left == point_to_find).all(axis=1))[0][0]
+    original_point_index_left, turn_index_left = point_indices_left[helix_index]
+
+    # 原始曲线中的位置标注
+    original_points_abnormal_left = fixed_curve_points[:original_point_index_left]
+
+    # 第一个不符合条件的点在原始曲线中的切线斜率
+    tangent_anomalies_index_left = calculate_tangent(fixed_curve_points, original_point_index_left)
+    anomalies_ang_left = 90 + np.degrees(np.tan(tangent_anomalies_index_left[0] / tangent_anomalies_index_left[1]))
+
+# 整合左右的不正常点
+if delete_index_right is not None or delete_index_left is not None:
+    original_points_abnormal_combined = np.vstack((original_points_abnormal_right, original_points_abnormal_left))
+
+# ********************************
+
+# 去掉 helix_intersecting_points_2d 右侧 中 x 坐标大于 0 的点 和 左侧 中 x 坐标小于 0 的点
+helix_intersecting_points_2d_filtered_right = helix_intersecting_points_2d_right[helix_intersecting_points_2d_right[:, 0] <= 0]
+helix_intersecting_points_2d_filtered_left = helix_intersecting_points_2d_left[helix_intersecting_points_2d_left[:, 0] >= 0]
+
+# 将 helix_intersecting_points_2d_filtered 右侧反向排序
+helix_intersecting_points_2d_filtered_right= helix_intersecting_points_2d_filtered_right[::-1]
 
 # 合并点
-helix_intersecting_points_2d_combined = np.vstack((helix_intersecting_points_2d_filtered, helix_intersecting_points_2d_mirrored))
+helix_intersecting_points_2d_combined = np.vstack((helix_intersecting_points_2d_filtered_right, helix_intersecting_points_2d_filtered_left))
 
-#找出 helix_intersecting_points_2d 中 x 坐标大于 0 的点并镜像复制
-helix_intersecting_points_2d_over = helix_intersecting_points_2d[helix_intersecting_points_2d[:, 0] > 0]
-helix_intersecting_points_2d_over_mirrored = helix_intersecting_points_2d_over.copy()
-helix_intersecting_points_2d_over_mirrored[:, 0] = -helix_intersecting_points_2d_over_mirrored[:, 0]
-helix_intersecting_points_2d_over_combined = np.vstack((helix_intersecting_points_2d_over, helix_intersecting_points_2d_over_mirrored))
+#找出 helix_intersecting_points_2d 中 右侧 x 坐标大于 0 的点 和 左侧 x 坐标小于 0 的点
+helix_intersecting_points_2d_over_right = helix_intersecting_points_2d_right[helix_intersecting_points_2d_right[:, 0] > 0]
+helix_intersecting_points_2d_over_left = helix_intersecting_points_2d_left[helix_intersecting_points_2d_left[:, 0] < 0]
+helix_intersecting_points_2d_over_combined = np.vstack((helix_intersecting_points_2d_over_right, helix_intersecting_points_2d_over_left))
+
+# ********************************
 
 # 获取 curve_points 的点个数
 num_curve_points = len(curve_points)
@@ -447,9 +482,15 @@ max_y_index = np.argmax(helix_intersecting_points_2d_translated[:, 1])
 min_y_index = np.argmin(helix_intersecting_points_2d_translated[:, 1])
 max_y_point = helix_intersecting_points_2d_translated[max_y_index]
 min_y_point = helix_intersecting_points_2d_translated[min_y_index]
+max_x_index = np.argmax(helix_intersecting_points_2d_translated[:, 0])
+min_x_index = np.argmin(helix_intersecting_points_2d_translated[:, 0])
+max_x_point = helix_intersecting_points_2d_translated[max_x_index]
+min_x_point = helix_intersecting_points_2d_translated[min_x_index]
 
 # 计算高度差
 height_difference = max_y_point[1] - min_y_point[1]
+# 计算齿宽
+width_max = max_x_point[0] - min_x_point[0]
 
 # 最高点的前一个点的切线与垂直向下方向的夹角
 if max_y_index > 0:
@@ -593,12 +634,16 @@ ax1.set_ylabel('Y')
 
 # 绘制旋转后的曲线和法线，以及螺旋曲面上的点
 ax2 = fig.add_subplot(142, projection='3d')
-ax2.plot(helix_surface_points[:, 0], helix_surface_points[:, 1], helix_surface_points[:, 2], label='螺旋曲面')
-ax2.scatter(helix_intersecting_points[:, 0], helix_intersecting_points[:, 1], helix_intersecting_points[:, 2], color='yellow', s=10, label='砂轮接触点')
+ax2.plot(helix_surface_points_right[:, 0], helix_surface_points_right[:, 1], helix_surface_points_right[:, 2], label='右侧螺旋曲面')
+ax2.scatter(helix_intersecting_points_right[:, 0], helix_intersecting_points_right[:, 1], helix_intersecting_points_right[:, 2], color='yellow', s=10, label='右侧砂轮接触点')
+ax2.plot(helix_surface_points_left[:, 0], helix_surface_points_left[:, 1], helix_surface_points_left[:, 2], label='左侧螺旋曲面')
+ax2.scatter(helix_intersecting_points_left[:, 0], helix_intersecting_points_left[:, 1], helix_intersecting_points_left[:, 2], color='yellow', s=10, label='左侧砂轮接触点')
 
 # 标注异常点及后续所有点在曲面中的位置
-if delete_index is not None:
-    ax2.scatter(anomalous_points[:, 0], anomalous_points[:, 1], anomalous_points[:, 2], color='red', s=50, label='异常接触点')
+if delete_index_right is not None:
+    ax2.scatter(anomalous_points_right[:, 0], anomalous_points_right[:, 1], anomalous_points_right[:, 2], color='red', s=20, label='右侧异常接触点')
+if delete_index_left is not None:
+    ax2.scatter(anomalous_points_left[:, 0], anomalous_points_left[:, 1], anomalous_points_left[:, 2], color='red', s=20, label='左侧异常接触点')
 
 ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2))  # 调整图例位置
 ax2.set_title('滚道加工面', pad=20)  # 调整标题位置
@@ -629,12 +674,16 @@ if len(helix_intersecting_points_2d_over_combined) > 0:
     ax3.scatter(helix_intersecting_points_2d_over_combined[:, 0], helix_intersecting_points_2d_over_combined[:, 1], color='#1f5793', s=10, label='齿顶异常点')
 
 # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
-if delete_index is not None:
-    ax3.scatter(original_points_abnormal_combined[:, 0], original_points_abnormal_combined[:, 1], color='green', s=5, label=f'异常点在原始轨道的位置 (螺旋圈数: {turn_index}, 点位号: {original_point_index})')
+if delete_index_right is not None:
+    ax3.scatter(original_points_abnormal_right[:, 0], original_points_abnormal_right[:, 1], color='green', s=5, label=f'异常点在原始轨道的右侧位置 (螺旋圈数: {turn_index_right}, 点位号: {original_point_index_right})')
+if delete_index_left is not None:
+    ax3.scatter(original_points_abnormal_left[:, 0], original_points_abnormal_left[:, 1], color='green', s=5, label=f'异常点在原始轨道的左侧位置 (螺旋圈数: {turn_index_left}, 点位号: {original_point_index_left})')
 
 # 标注原始曲线中第一个不符合条件的点的切线斜率
-if tangent_anomalies_index is not None:
-    ax3.quiver(original_points_abnormal[0, 0], original_points_abnormal[0, 1], tangent_anomalies_index[0], tangent_anomalies_index[1], color='red', scale=5, label=f'第一个异常点的切线斜率: {anomalies_ang}')
+if tangent_anomalies_index_right is not None:
+    ax3.quiver(original_points_abnormal_right[0, 0], original_points_abnormal_right[0, 1], tangent_anomalies_index_right[0], tangent_anomalies_index_right[1], color='red', scale=5, label=f'右侧第一个异常点的切线斜率: {anomalies_ang_right:.4f}')
+if tangent_anomalies_index_left is not None:
+    ax3.quiver(original_points_abnormal_left[-1, 0], original_points_abnormal_left[-1, 1], tangent_anomalies_index_left[0], tangent_anomalies_index_left[1], color='red', scale=5, label=f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}')
 
 ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.5))  # 调整图例位置
 ax3.set_aspect('equal')
@@ -659,7 +708,9 @@ multiline_text = f"钢球直径：3.969\n" \
                  f"螺旋升角：{angle:.4f}\n" \
                  f"砂轮安装角：{gan_angle:.4f}\n" \
                  f"砂轮杆据中心偏移：{gan_distance:.4f}\n" \
-                 f"砂轮直径：{wheel_dia:.4f}"
+                 f"砂轮直径：{wheel_dia:.4f}\n" \
+                 f"砂轮齿高：{height_difference:.4f}\n" \
+                 f"砂轮齿宽：{width_max:.4f}"
 fig.text(0.1, 0.95, multiline_text, fontsize=12, color='#000000', ha='left', va='top', wrap=True)
 
 plt.show()
