@@ -20,7 +20,7 @@ work_lead = 45
 
 # 螺旋升角
 angle = np.rad2deg(np.arctan2(work_lead, np.pi * mid_dia))
-print(f'标准螺旋升角: {angle}')
+print(f'标准螺旋升角: {angle:.4f}')
 
 # dxf 曲线离散点个数
 segment_length = 0.01
@@ -545,7 +545,7 @@ WHEEL_DIA=DRESSER[24]
 ;********************************
 
 IF (WHEEL_DIA>={wheel_dia:.4f}) GOTOF DIA_{wheel_dia_str};
-IF (WHEEL_DIA<{wheel_dia:.4f}) GOTOF DIA_0000;
+IF (WHEEL_DIA<{wheel_dia:.4f}) GOTOF DIA_{wheel_dia_str};
 
 ;********************************
 """
