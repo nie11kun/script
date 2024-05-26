@@ -1,7 +1,5 @@
 from library.curve_to_wheel_points import curve_to_wheel_points
 from library.calc import remove_leading_whitespace, parse_coordinates, plot_coordinates
-import matplotlib.pyplot as plt
-import numpy as np
 from decimal import Decimal
 
 # 砂轮杆偏移工件中心最大距离
