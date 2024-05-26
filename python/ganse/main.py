@@ -2,9 +2,10 @@ from library.curve_to_wheel_points import curve_to_wheel_points
 from library.calc import remove_leading_whitespace, parse_coordinates, plot_coordinates
 import matplotlib.pyplot as plt
 import numpy as np
+from decimal import Decimal
 
 # 砂轮杆偏移工件中心最大距离
-gan_distance_max = 17.9
+gan_distance_max = 17.8
 
 # 砂轮杆偏移工件中心最小距离
 gan_distance_min = 17.5
@@ -24,10 +25,9 @@ work_lead = 45
 # ****************************
 
 # 齿型程序个数
-dia_num = int((gan_distance_max - gan_distance_min) / (step_dia / 2))
+dia_num = int((Decimal(f'{gan_distance_max}') - Decimal(f'{gan_distance_min}')) / Decimal(f'{step_dia / 2}'))
 
-size = 1000
-
+size = 100
 wheel_dia = [i for i in range(size)]
 wheel_dia_str = [i for i in range(size)]
 file_content = [i for i in range(size)]
@@ -50,6 +50,12 @@ WHEEL_DIA=DRESSER[24]
 ;********************************
 
 IF (WHEEL_DIA>={wheel_dia[0]:.4f}) GOTOF DIA_{wheel_dia_str[0]};
+"""
+
+for i in range(1,dia_num+1):
+    head_content += f'IF (WHEEL_DIA<{wheel_dia[i-1]:.4f}) AND (WHEEL_DIA>={wheel_dia[i]:.4f}) GOTOF DIA_{wheel_dia_str[i]};\n'
+
+head_content += f"""
 IF (WHEEL_DIA<{wheel_dia[dia_num]:.4f}) GOTOF DIA_{wheel_dia_str[dia_num]};
 
 ;********************************
