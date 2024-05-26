@@ -90,9 +90,9 @@ def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead, if_plot=F
 
     # ********************************
 
-    # 右侧点 查找第一个 x 和 y 坐标都大于前一个点的点的索引
+    # 右侧点 查找第一个 x 和 y 坐标都大于前一个点的点的索引 不检测前10个点 防止误判
     delete_index_right = None
-    for i in range(1, len(helix_intersecting_points_2d_right)):
+    for i in range(10, len(helix_intersecting_points_2d_right)):
         if helix_intersecting_points_2d_right[i, 0] > helix_intersecting_points_2d_right[i-1, 0] and helix_intersecting_points_2d_right[i, 1] > helix_intersecting_points_2d_right[i-1, 1]:
             delete_index_right = i
             break
@@ -119,9 +119,9 @@ def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead, if_plot=F
         tangent_anomalies_index_right = libs.calculate_tangent(fixed_curve_points, original_point_index_right)
         anomalies_ang_right = 90 - np.degrees(np.tan(tangent_anomalies_index_right[0] / tangent_anomalies_index_right[1]))
 
-    # 左侧点 查找第一个 x 坐标小于前一个点 和 y 坐标大于前一个点的点的索引
+    # 左侧点 查找第一个 x 坐标小于前一个点 和 y 坐标大于前一个点的点的索引  不检测前10个点 防止误判
     delete_index_left = None
-    for i in range(1, len(helix_intersecting_points_2d_left)):
+    for i in range(10, len(helix_intersecting_points_2d_left)):
         if helix_intersecting_points_2d_left[i, 0] < helix_intersecting_points_2d_left[i-1, 0] and helix_intersecting_points_2d_left[i, 1] > helix_intersecting_points_2d_left[i-1, 1]:
             delete_index_left = i
             break
