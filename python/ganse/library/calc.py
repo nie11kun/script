@@ -259,8 +259,8 @@ def plot_coordinates(points1, points2):
     points2 = np.array(points2)
     
     plt.figure()
-    plt.scatter(points1[:, 0], points1[:, 1], color='blue', label='Set 1')
-    plt.scatter(points2[:, 0], points2[:, 1], color='red', label='Set 2')
+    plt.scatter(points1[:, 0], points1[:, 1], color='blue', s=1, label='Set 1')
+    plt.scatter(points2[:, 0], points2[:, 1], color='red', s=1, label='Set 2')
     
     plt.xlabel('X')
     plt.ylabel('Y')

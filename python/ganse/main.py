@@ -74,8 +74,8 @@ for i in range(dia_num+1):
 remove_leading_whitespace("output.txt","output.txt")
 
 # 解析坐标
-# points1 = parse_coordinates(point_string[0])
-# points2 = parse_coordinates(point_string[1])
+points1 = parse_coordinates(point_string[0])
+points2 = parse_coordinates(point_string[1])
 
 # 绘制坐标
-# plot_coordinates(points1, points2)
+plot_coordinates(points1, points2)
