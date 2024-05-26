@@ -3,6 +3,7 @@ import ezdxf
 from scipy.interpolate import make_interp_spline
 import sys
 import numba
+import matplotlib.pyplot as plt
 
 # 定义一个函数，从 DXF 文件中加载曲线，并仅保留 XY 坐标，同时应用偏移和等距离散化
 def load_dxf_curve(filename, offset=np.array([0, 30]), segment_length=0.01):
@@ -239,3 +240,30 @@ def remove_leading_whitespace(input_file, output_file):
     # 将处理后的内容写回到新文件
     with open(output_file, 'w', encoding='utf-8') as file:
         file.writelines(cleaned_lines)
+
+# 解析字符串，逐行提取坐标点
+def parse_coordinates(s):
+    """
+    解析字符串，提取坐标点
+    """
+    lines = s.strip().split('\n')
+    points = [list(map(float, line.split())) for line in lines]
+    return points
+
+# 绘制两个坐标点集合
+def plot_coordinates(points1, points2):
+    """
+    绘制两个坐标点集合
+    """
+    points1 = np.array(points1)
+    points2 = np.array(points2)
+    
+    plt.figure()
+    plt.scatter(points1[:, 0], points1[:, 1], color='blue', label='Set 1')
+    plt.scatter(points2[:, 0], points2[:, 1], color='red', label='Set 2')
+    
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title('Plot of Coordinates')
+    plt.legend()
+    plt.show()
