@@ -457,6 +457,7 @@ def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead, if_plot=F
                         f"砂轮齿宽：{width_max:.4f}"
         fig.text(0.1, 0.95, multiline_text, fontsize=12, color='#000000', ha='left', va='top', wrap=True)
 
-        plt.show()
+        plt.show(block=False) # 显示图表但不会阻塞程序的执行
+        plt.pause(10)  # 暂停以便图表渲染
 
     return wheel_dia, file_content, point_string

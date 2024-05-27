@@ -3,7 +3,7 @@ from library.calc import remove_leading_whitespace, parse_coordinates, plot_coor
 from decimal import Decimal
 
 # 砂轮杆偏移工件中心最大距离
-gan_distance_max = 19
+gan_distance_max = 18
 
 # 砂轮杆偏移工件中心最小距离
 gan_distance_min = 17.5
@@ -32,7 +32,12 @@ file_content = [i for i in range(size)]
 point_string = [i for i in range(size)]
 
 for i in range(dia_num+1):
-    wheel_dia[i], file_content[i], point_string[i] = curve_to_wheel_points(gan_distance=gan_distance_min+step_dia/2*i, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead, if_plot=False)
+    if i == 0:
+        is_plot = True
+    else:
+        is_plot = False
+    
+    wheel_dia[i], file_content[i], point_string[i] = curve_to_wheel_points(gan_distance=gan_distance_min+step_dia/2*i, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead, if_plot=is_plot)
 
     # 将直径转换为4位小数的字符串 并替换小数点为下划线
     wheel_dia_str[i] = f"{wheel_dia[i]:.4f}".replace('.', '_')
@@ -73,7 +78,7 @@ remove_leading_whitespace("output.txt","output.txt")
 
 # 解析坐标
 points1 = parse_coordinates(point_string[0])
-points2 = parse_coordinates(point_string[1])
+points2 = parse_coordinates(point_string[dia_num])
 
 # 绘制坐标
 plot_coordinates(points1, points2)
