@@ -171,6 +171,16 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     helix_intersecting_points_2d_over_left = helix_intersecting_points_2d_left[helix_intersecting_points_2d_left[:, 0] < 0]
     helix_intersecting_points_2d_over_combined = np.vstack((helix_intersecting_points_2d_over_right, helix_intersecting_points_2d_over_left))
 
+    print(len(helix_intersecting_points_new_coordinate_system_right))
+    print(len(helix_intersecting_points_new_coordinate_system_left))
+    print(helix_intersecting_points_2d_filtered_right[1])
+    print(helix_intersecting_points_2d_filtered_right[-1])
+    print(helix_intersecting_points_2d_filtered_left[1])
+    print(helix_intersecting_points_2d_filtered_left[-1])
+    print(len(helix_intersecting_points_2d_filtered_right))
+    print(len(helix_intersecting_points_2d_filtered_left))
+    print(len(helix_intersecting_points_2d_over_right))
+    print(len(helix_intersecting_points_2d_over_left))
     # ********************************
 
     # 获取 curve_points 的点个数

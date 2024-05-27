@@ -3,16 +3,16 @@ from library.calc import remove_leading_whitespace, parse_coordinates, plot_coor
 from decimal import Decimal
 
 # 砂轮杆偏移工件中心最大距离
-gan_distance_max = 20
+gan_distance_max = 35.4
 
 # 砂轮杆偏移工件中心最小距离
-gan_distance_min = 20
+gan_distance_min = 35.4
 
 # 砂轮直径步进
 step_dia = 0.2
 
 # 砂轮安装角
-gan_angle = 3.47
+gan_angle = 10.9191
 
 # 工件中径
 mid_dia = 82.5

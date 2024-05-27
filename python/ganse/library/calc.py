@@ -43,7 +43,7 @@ def load_dxf_curve(filename, offset=np.array([0, 30]), segment_length=0.01):
             points.extend(arc_points)  # 将圆弧点添加到列表中
     return np.array(points)
 
-# 排列坐标数组 以0 为基准 按照从大到小 先排列x小于零 在排列x大于零
+# 排列坐标数组 以0 为基准 按照从大到小 先排列x小于零 按照从小到大 在排列x大于零
 def sort_points(points, x0=0):
     # 将点分为 x 小于零和 x 大于等于零的两部分
     points_left = points[points[:, 0] < 0]
@@ -51,7 +51,7 @@ def sort_points(points, x0=0):
 
     # 分别排序
     points_left_sorted = points_left[np.argsort(points_left[:, 0])[::-1]]  # 按 x 从大到小排序
-    points_right_sorted = points_right[np.argsort(points_right[:, 0])[::-1]]  # 按 x 从大到小排序
+    points_right_sorted = points_right[np.argsort(points_right[:, 0])]  # 按 x 从小到大排序
 
     # 合并排序后的数组
     sorted_points = np.vstack((points_left_sorted, points_right_sorted))
