@@ -227,7 +227,7 @@ def curve_to_wheel_points(gan_distance, gan_angle, mid_dia, work_lead, if_plot=F
             if helix_intersecting_points_2d_translated[i, 0] < helix_intersecting_points_2d_translated[i - 1, 0]:
                 points_to_delete.append(i - 1)
 
-    # 当 x 坐标大于 0 时，删除不符合条件的后一个点  ???????????????????????????????s
+    # 当 x 坐标大于 0 时，删除不符合条件的后一个点
     for i in range(len(helix_intersecting_points_2d_translated) - 1):
         if helix_intersecting_points_2d_translated[i, 0] > 0:
             if helix_intersecting_points_2d_translated[i, 0] > helix_intersecting_points_2d_translated[i + 1, 0]:
