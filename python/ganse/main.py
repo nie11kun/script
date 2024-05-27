@@ -1,24 +1,24 @@
 from library.curve_to_wheel_points import curve_to_wheel_points
-from library.calc import remove_leading_whitespace, parse_coordinates, plot_coordinates
+from library.calc import remove_leading_whitespace, parse_coordinates, plot_coordinates, read_file
 from decimal import Decimal
 
 # 砂轮杆偏移工件中心最大距离
-gan_distance_max = 18
+gan_distance_max = 35
 
 # 砂轮杆偏移工件中心最小距离
-gan_distance_min = 17.5
+gan_distance_min = 35
 
 # 砂轮直径步进
 step_dia = 0.2
 
 # 砂轮安装角
-gan_angle = 5
+gan_angle = 3.47
 
 # 工件中径
-mid_dia = 45
+mid_dia = 82.5
 
 # 导程
-work_lead = 45
+work_lead = 50
 
 # ****************************
 
@@ -76,9 +76,15 @@ for i in range(dia_num+1):
 # 删除文本中的缩进
 remove_leading_whitespace("output.txt","output.txt")
 
+# 文件路径
+file1_path = 'file1.txt'
+
+# 读取文件内容
+str1 = read_file(file1_path)
+
 # 解析坐标
-points1 = parse_coordinates(point_string[0])
-points2 = parse_coordinates(point_string[dia_num])
+points1 = parse_coordinates(str1)
+points2 = parse_coordinates(point_string[0])
 
 # 绘制坐标
 plot_coordinates(points1, points2)

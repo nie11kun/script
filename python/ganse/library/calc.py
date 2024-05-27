@@ -43,6 +43,21 @@ def load_dxf_curve(filename, offset=np.array([0, 30]), segment_length=0.01):
             points.extend(arc_points)  # 将圆弧点添加到列表中
     return np.array(points)
 
+# 排列坐标数组 以0 为基准 按照从大到小 先排列x小于零 在排列x大于零
+def sort_points(points, x0=0):
+    # 将点分为 x 小于零和 x 大于等于零的两部分
+    points_left = points[points[:, 0] < 0]
+    points_right = points[points[:, 0] >= 0]
+
+    # 分别排序
+    points_left_sorted = points_left[np.argsort(points_left[:, 0])[::-1]]  # 按 x 从大到小排序
+    points_right_sorted = points_right[np.argsort(points_right[:, 0])[::-1]]  # 按 x 从大到小排序
+
+    # 合并排序后的数组
+    sorted_points = np.vstack((points_left_sorted, points_right_sorted))
+
+    return sorted_points
+
 # 定义一个函数，计算一组点的法线向量
 def compute_normals(points):
     normals = []
@@ -123,18 +138,26 @@ def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, tur
     return np.vstack(surface_points), np.vstack(surface_normals), point_indices
 
 # 生成平滑曲线上的点
-def smooth_curve(points, num_points):
+def smooth_curve(points, distance):
     try:
         x = points[:, 0]
         y = points[:, 1]
         
-        # 使用 make_interp_spline 生成 Bézier 曲线
-        spline_x = make_interp_spline(np.arange(len(x)), x, k=2)  # k=2 生成二次 Bézier 曲线
-        spline_y = make_interp_spline(np.arange(len(y)), y, k=2)
+        # 计算每个点到其前一个点的距离
+        deltas = np.sqrt(np.diff(x)**2 + np.diff(y)**2)
+        cumulative_lengths = np.insert(np.cumsum(deltas), 0, 0)
         
-        u_new = np.linspace(0, len(x) - 1, num_points)
-        x_new = spline_x(u_new)
-        y_new = spline_y(u_new)
+        # 生成等距点的累积长度
+        total_length = cumulative_lengths[-1]
+        num_points = int(total_length / distance) + 1
+        equal_lengths = np.linspace(0, total_length, num_points)
+        
+        # 使用 make_interp_spline 生成 Bézier 曲线
+        spline_x = make_interp_spline(cumulative_lengths, x, k=2)  # k=2 生成二次 Bézier 曲线
+        spline_y = make_interp_spline(cumulative_lengths, y, k=2)
+        
+        x_new = spline_x(equal_lengths)
+        y_new = spline_y(equal_lengths)
         
         # 确保平滑曲线上的点单调过渡
         for i in range(1, len(x_new) - 1):
@@ -241,6 +264,14 @@ def remove_leading_whitespace(input_file, output_file):
     with open(output_file, 'w', encoding='utf-8') as file:
         file.writelines(cleaned_lines)
 
+# 读取文件内容并返回字符串
+def read_file(file_path):
+    """
+    读取文件内容
+    """
+    with open(file_path, 'r') as file:
+        return file.read()
+    
 # 解析字符串，逐行提取坐标点
 def parse_coordinates(s):
     """
