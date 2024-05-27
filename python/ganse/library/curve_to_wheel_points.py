@@ -388,9 +388,9 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
 
         # 标注异常点及后续所有点在曲面中的位置
         if delete_index_right is not None:
-            ax2.scatter(anomalous_points_right[:, 0], anomalous_points_right[:, 1], anomalous_points_right[:, 2], color='red', s=20, label='右侧异常接触点')
+            ax2.scatter(anomalous_points_right[:, 0], anomalous_points_right[:, 1], anomalous_points_right[:, 2], color='red', s=12, label='右侧异常接触点')
         if delete_index_left is not None:
-            ax2.scatter(anomalous_points_left[:, 0], anomalous_points_left[:, 1], anomalous_points_left[:, 2], color='red', s=20, label='左侧异常接触点')
+            ax2.scatter(anomalous_points_left[:, 0], anomalous_points_left[:, 1], anomalous_points_left[:, 2], color='red', s=12, label='左侧异常接触点')
 
         ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2))  # 调整图例位置
         ax2.set_title('滚道加工面', pad=20)  # 调整标题位置
@@ -407,10 +407,10 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         # 绘制螺旋曲面相交点旋转到新坐标系二维平面
         ax3 = fig.add_subplot(143)
         # ax3.plot(fixed_curve_points[:, 0], fixed_curve_points[:, 1], label='标准齿形轨迹', linewidth=0.5)
-        ax3.scatter(fixed_curve_points[:, 0], fixed_curve_points[:, 1], color='blue', s=1, label='标准齿形轨迹点')
+        ax3.scatter(fixed_curve_points[:, 0], fixed_curve_points[:, 1], color='blue', s=0.1, label='标准齿形轨迹点')
         if len(helix_intersecting_points_2d_smoothed) > 0:
             # ax3.plot(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], label='干涉砂轮齿形轨迹', linewidth=0.5)
-            ax3.scatter(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], color='red', s=1, label='干涉砂轮齿形轨迹点')
+            ax3.scatter(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], color='red', s=0.1, label='干涉砂轮齿形轨迹点')
 
         # 标注 x 坐标小于上一个点的点
         if len(anomalies_smoothed) > 0:
