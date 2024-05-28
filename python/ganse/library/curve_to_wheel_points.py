@@ -166,28 +166,19 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # 合并点
     helix_intersecting_points_2d_combined = np.vstack((helix_intersecting_points_2d_filtered_right, helix_intersecting_points_2d_filtered_left))
 
-    #找出 helix_intersecting_points_2d 中 右侧 x 坐标大于 0 的点 和 左侧 x 坐标小于 0 的点
-    helix_intersecting_points_2d_over_right = helix_intersecting_points_2d_right[helix_intersecting_points_2d_right[:, 0] > 0]
-    helix_intersecting_points_2d_over_left = helix_intersecting_points_2d_left[helix_intersecting_points_2d_left[:, 0] < 0]
-    helix_intersecting_points_2d_over_combined = np.vstack((helix_intersecting_points_2d_over_right, helix_intersecting_points_2d_over_left))
-
-    print(len(helix_intersecting_points_new_coordinate_system_right))
-    print(len(helix_intersecting_points_new_coordinate_system_left))
-    print(helix_intersecting_points_2d_filtered_right[1])
-    print(helix_intersecting_points_2d_filtered_right[-1])
-    print(helix_intersecting_points_2d_filtered_left[1])
-    print(helix_intersecting_points_2d_filtered_left[-1])
-    print(len(helix_intersecting_points_2d_filtered_right))
-    print(len(helix_intersecting_points_2d_filtered_left))
-    print(len(helix_intersecting_points_2d_over_right))
-    print(len(helix_intersecting_points_2d_over_left))
-    # ********************************
-
     # 获取 curve_points 的点个数
     num_curve_points = len(curve_points)
 
     # 将 helix_intersecting_points_2d_combined 处理成平滑曲线上的点，点间距与原图形一致
     helix_intersecting_points_2d_smoothed = libs.smooth_curve(helix_intersecting_points_2d_combined, segment_length)
+
+    # ********************************
+
+    # 找出 helix_intersecting_points_2d 中 右侧 x 坐标大于 0 的点 和 左侧 x 坐标小于 0 的点
+    # 如果安装角和螺旋升角很接近 可能某一侧的相交点覆盖整个干涉曲线 而不是只有x轴一侧的相交点
+    helix_intersecting_points_2d_over_right = helix_intersecting_points_2d_right[helix_intersecting_points_2d_right[:, 0] > 0]
+    helix_intersecting_points_2d_over_left = helix_intersecting_points_2d_left[helix_intersecting_points_2d_left[:, 0] < 0]
+    helix_intersecting_points_2d_over_combined = np.vstack((helix_intersecting_points_2d_over_right, helix_intersecting_points_2d_over_left))
 
     # ********************************
 
@@ -458,9 +449,7 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         ax4.set_xlabel('X')
         ax4.set_ylabel('Y')
 
-        multiline_text = f"钢球直径：3.969\n" \
-                        f"钢球接触角：45\n" \
-                        f"工件中径：{mid_dia:.4f}\n" \
+        multiline_text = f"工件中径：{mid_dia:.4f}\n" \
                         f"工件导程：{work_lead:.4f}\n" \
                         f"螺旋升角：{angle:.4f}\n" \
                         f"砂轮安装角：{gan_angle:.4f}\n" \
