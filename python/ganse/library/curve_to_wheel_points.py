@@ -383,15 +383,15 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         # 绘制旋转后的曲线和法线，以及螺旋曲面上的点
         ax2 = fig.add_subplot(142, projection='3d')
         ax2.plot(helix_surface_points_right[:, 0], helix_surface_points_right[:, 1], helix_surface_points_right[:, 2], label='右侧螺旋曲面')
-        ax2.scatter(helix_intersecting_points_right[:, 0], helix_intersecting_points_right[:, 1], helix_intersecting_points_right[:, 2], color='yellow', s=10, label='右侧砂轮接触点')
         ax2.plot(helix_surface_points_left[:, 0], helix_surface_points_left[:, 1], helix_surface_points_left[:, 2], label='左侧螺旋曲面')
-        ax2.scatter(helix_intersecting_points_left[:, 0], helix_intersecting_points_left[:, 1], helix_intersecting_points_left[:, 2], color='yellow', s=10, label='左侧砂轮接触点')
+        ax2.scatter(helix_intersecting_points_right[:, 0], helix_intersecting_points_right[:, 1], helix_intersecting_points_right[:, 2], color='#93cd00', s=10, label='右侧砂轮接触点')
+        ax2.scatter(helix_intersecting_points_left[:, 0], helix_intersecting_points_left[:, 1], helix_intersecting_points_left[:, 2], color='#d6c400', s=10, label='左侧砂轮接触点')
 
         # 标注异常点及后续所有点在曲面中的位置
         if delete_index_right is not None:
-            ax2.scatter(anomalous_points_right[:, 0], anomalous_points_right[:, 1], anomalous_points_right[:, 2], color='red', s=12, label='右侧异常接触点')
+            ax2.scatter(anomalous_points_right[:, 0], anomalous_points_right[:, 1], anomalous_points_right[:, 2], color='#cd0000', s=12, label='右侧异常接触点')
         if delete_index_left is not None:
-            ax2.scatter(anomalous_points_left[:, 0], anomalous_points_left[:, 1], anomalous_points_left[:, 2], color='red', s=12, label='左侧异常接触点')
+            ax2.scatter(anomalous_points_left[:, 0], anomalous_points_left[:, 1], anomalous_points_left[:, 2], color='#cd6700', s=12, label='左侧异常接触点')
 
         ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2))  # 调整图例位置
         ax2.set_title('滚道加工面', pad=20)  # 调整标题位置
@@ -417,9 +417,11 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         if len(anomalies_smoothed) > 0:
             ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#0053ac', s=10, label='齿底异常点')
 
-        # 标注 曲线上有交叉的点
-        if len(helix_intersecting_points_2d_over_combined) > 0:
-            ax3.scatter(helix_intersecting_points_2d_over_combined[:, 0], helix_intersecting_points_2d_over_combined[:, 1], color='#1f5793', s=10, label='齿顶异常点')
+        # 标注 左右侧曲线上有交叉的点
+        if len(helix_intersecting_points_2d_over_right) > 0:
+            ax3.scatter(helix_intersecting_points_2d_over_right[:, 0], helix_intersecting_points_2d_over_right[:, 1], color='#1f5793', s=10, label='右侧齿顶异常点')
+        if len(helix_intersecting_points_2d_over_left) > 0:
+            ax3.scatter(helix_intersecting_points_2d_over_left[:, 0], helix_intersecting_points_2d_over_left[:, 1], color='#2cb5ff', s=10, label='左侧齿顶异常点')
 
         # # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
         # if delete_index_right is not None:
