@@ -43,20 +43,79 @@ def load_dxf_curve(filename, offset=np.array([0, 30]), segment_length=0.01):
             points.extend(arc_points)  # 将圆弧点添加到列表中
     return np.array(points)
 
-# 排列坐标数组 以0 为基准 按照从大到小 先排列x小于零 按照从小到大 在排列x大于零
-def sort_points(points, x0=0):
+# 如果curve_points中没有x0这一点，则添加x0点，y坐标使用与它最近点的y坐标
+def add_point_if_missing(curve_points, x0=0):
+    """
+    如果curve_points中没有x0这一点，则添加x0点，y坐标使用与它最近点的y坐标。
+
+    参数:
+    curve_points -- 二维数组，形状为 (n, 2)，其中 n 是点的数量
+    x0 -- 需要检查和可能添加的x坐标点
+
+    返回:
+    更新后的二维数组
+    """
+    # 检查是否存在x0点
+    if np.any(curve_points[:, 0] == x0):
+        return curve_points
+    
+    # 如果不存在，找到距离x0最近的点的索引
+    closest_index = np.argmin(np.abs(curve_points[:, 0] - x0))
+    closest_y = curve_points[closest_index, 1]
+    
+    # 创建新的点
+    new_point = np.array([[x0, closest_y]])
+    
+    # 添加新点并排序
+    updated_points = np.vstack((curve_points, new_point))
+    updated_points = updated_points[np.argsort(updated_points[:, 0])]
+    
+    return updated_points
+
+# 排列坐标数组 以0 为基准 按照从小到大
+def sort_points(points, positive=True, x0=0):
     # 将点分为 x 小于零和 x 大于等于零的两部分
     points_left = points[points[:, 0] < 0]
     points_right = points[points[:, 0] >= 0]
 
-    # 分别排序
-    points_left_sorted = points_left[np.argsort(points_left[:, 0])[::-1]]  # 按 x 从大到小排序
-    points_right_sorted = points_right[np.argsort(points_right[:, 0])]  # 按 x 从小到大排序
+    if positive == True:
+        # 分别排序
+        points_left_sorted = points_left[np.argsort(points_left[:, 0])]  # 按 x 从小到大排序
+        points_right_sorted = points_right[np.argsort(points_right[:, 0])]  # 按 x 从小到大排序
 
-    # 合并排序后的数组
-    sorted_points = np.vstack((points_left_sorted, points_right_sorted))
+        # 合并排序后的数组
+        sorted_points = np.vstack((points_left_sorted, points_right_sorted))
+    else:
+        # 分别排序
+        points_left_sorted = points_left[np.argsort(points_left[:, 0])[::-1]]
+        points_right_sorted = points_right[np.argsort(points_right[:, 0])[::-1]]
+
+        # 合并排序后的数组
+        sorted_points = np.vstack((points_right_sorted, points_left_sorted))
 
     return sorted_points
+
+# 二维数组按x坐标拆分成两部分
+def split_and_sort_points(points):
+    """
+    将二维数组按x坐标拆分成两部分：x大于0和x小于0，
+    小于0部分按x越来越小排序，大于0部分按x越来越大排序。
+
+    参数:
+    points -- 二维数组，形状为 (n, 2)，其中 n 是点的数量
+
+    返回:
+    小于0部分和大于0部分的两个二维数组
+    """
+    # 拆分成两部分
+    points_greater_than_0 = points[points[:, 0] >= 0]
+    points_less_than_0 = points[points[:, 0] < 0]
+
+    # 分别排序
+    points_greater_than_0 = points_greater_than_0[np.argsort(points_greater_than_0[:, 0])]
+    points_less_than_0 = points_less_than_0[np.argsort(points_less_than_0[:, 0])[::-1]]
+
+    return points_less_than_0, points_greater_than_0
 
 # 定义一个函数，计算一组点的法线向量
 def compute_normals(points):
@@ -69,7 +128,11 @@ def compute_normals(points):
         else:
             tangent = points[i + 1] - points[i - 1]
         normal = np.array([-tangent[1], tangent[0]])  # 计算法线向量
-        normal = normal / np.linalg.norm(normal)  # 归一化法线向量
+        # 计算向量的长度
+        norm = np.linalg.norm(normal)
+        # 归一化法线向量，如果向量长度不为零
+        if norm != 0:
+            normal = normal / norm 
         normals.append(normal)
     return np.array(normals)
 
@@ -84,12 +147,14 @@ def rotation_matrix_y(alpha):
 # 定义一个函数，绕某个轴旋转点和法线
 def rotate_points_and_normals(points, normals, angle, pivot=np.array([0, 0])):
     translated_points = points - pivot  # 平移点到原点
+    translated_normals = normals - pivot  # 平移点到原点
     points_3d = np.hstack((translated_points, np.zeros((translated_points.shape[0], 1))))  # 添加 z 轴坐标
-    normals_3d = np.hstack((normals, np.zeros((normals.shape[0], 1))))  # 添加 z 轴坐标
+    normals_3d = np.hstack((translated_normals, np.zeros((translated_normals.shape[0], 1))))  # 添加 z 轴坐标
     R = rotation_matrix_y(np.radians(angle))  # 计算旋转矩阵
     rotated_points = points_3d @ R.T  # 旋转点
     rotated_normals = normals_3d @ R.T  # 旋转法线
     rotated_points[:, :2] += pivot  # 平移回原位置
+    rotated_normals[:, :2] += pivot  # 平移回原位置
     return rotated_points, rotated_normals
 
 # 计算两条直线之间的最短距离
@@ -98,7 +163,8 @@ def line_to_line_distance(p1, d1, p2, d2):
     cross_prod = np.cross(d1, d2)
     norm_cross_prod = np.linalg.norm(cross_prod)
     if norm_cross_prod == 0:  # 处理平行的情况
-        return np.linalg.norm(np.cross(d1, (p2 - p1))) / np.linalg.norm(d1)
+        if np.linalg.norm(d1) != 0:
+            return np.linalg.norm(np.cross(d1, (p2 - p1))) / np.linalg.norm(d1)
     else:
         return np.abs(np.dot(cross_prod, (p2 - p1))) / norm_cross_prod
 
@@ -109,8 +175,9 @@ def find_intersecting_points(points, normals, line_point, line_direction, min_di
         normal_line_point = points[i]
         normal_line_direction = normals[i]
         distance = line_to_line_distance(normal_line_point, normal_line_direction, line_point, line_direction)
-        if distance < min_distance:
-            intersecting_points.append(points[i])
+        if distance is not None:
+            if distance < min_distance:
+                intersecting_points.append(points[i])
     if len(intersecting_points) == 0:
         return np.empty((0, 3))  # 返回一个空的二维数组
     return np.array(intersecting_points)
@@ -137,9 +204,41 @@ def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, tur
         point_indices.extend([(j, i) for j in range(len(points))])  # 追踪点的来源
     return np.vstack(surface_points), np.vstack(surface_normals), point_indices
 
+# 从main_points中删除points_to_remove包含的点
+def remove_points(main_points, points_to_remove):
+    """
+    从main_points中删除points_to_remove包含的点。
+
+    参数:
+    main_points -- 二维数组，形状为 (n, 2)，其中 n 是点的数量
+    points_to_remove -- 二维数组，包含需要删除的点
+
+    返回:
+    更新后的二维数组
+    """
+    # 使用列表解析过滤点
+    filtered_points = np.array([point for point in main_points if not any(np.array_equal(point, pt) for pt in points_to_remove)])
+    
+    return filtered_points
+
+# 删除重复x坐标的点
+def remove_duplicate_x(points):
+    """
+    移除重复的 x 坐标点，保留第一个出现的点。
+
+    参数:
+    points -- 二维数组，形状为 (n, 2)，其中 n 是点的数量
+
+    返回:
+    去除重复 x 坐标点后的二维数组
+    """
+    _, unique_indices = np.unique(points[:, 0], return_index=True)
+    return points[unique_indices]
+
 # 生成平滑曲线上的点
 def smooth_curve(points, distance):
     try:
+        points = remove_duplicate_x(points)
         x = points[:, 0]
         y = points[:, 1]
         
@@ -168,7 +267,7 @@ def smooth_curve(points, distance):
 
         return np.vstack((x_new, y_new)).T
     except Exception as e:
-        print(f"Error: 曲线不存在")
+        print(f"Error: 曲线不存在 - {e}")
         sys.exit(1)
 
 # 定义一个函数，将点旋转到新坐标系的 xy 平面

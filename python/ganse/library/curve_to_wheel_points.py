@@ -47,7 +47,10 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     dxf_filename = dxf_file  # DXF 文件名
     curve_points = libs.load_dxf_curve(dxf_filename, offset, segment_length)
 
-    # 按照逆时针 x0 为原点 从大到小分别排列负向和正向点
+    # 如果没有 x0 这一点则添加
+    curve_points = libs.add_point_if_missing(curve_points=curve_points, x0=0)
+
+    # 按照逆时针 x0 为原点 从小到大排列
     curve_points = libs.sort_points(curve_points)
 
     # 将 dxf 曲线转换为 3 维坐标并平移到新坐标系原点
@@ -55,8 +58,8 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     fixed_curve_points = fixed_curve_points - new_origin
 
     # 提取 x 负向和正向部分
-    fixed_curve_points_right = fixed_curve_points[fixed_curve_points[:, 0] < 0]
-    fixed_curve_points_left = fixed_curve_points[fixed_curve_points[:, 0] >= 0]
+    fixed_curve_points_right = libs.sort_points(fixed_curve_points[fixed_curve_points[:, 0] <= 0], positive=False)
+    fixed_curve_points_left = libs.sort_points(fixed_curve_points[fixed_curve_points[:, 0] >= 0])
 
     # 计算曲线点的法线
     normals = libs.compute_normals(curve_points)
@@ -99,8 +102,8 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
 
     # 右侧点 查找第一个 x 和 y 坐标都大于前一个点的点的索引 不检测前10个点 防止误判
     delete_index_right = None
-    for i in range(10, len(helix_intersecting_points_2d_right)):
-        if helix_intersecting_points_2d_right[i, 0] > helix_intersecting_points_2d_right[i-1, 0] and helix_intersecting_points_2d_right[i, 1] > helix_intersecting_points_2d_right[i-1, 1]:
+    for i in range(10, len(helix_intersecting_points_2d_right)-1):
+        if helix_intersecting_points_2d_right[i, 0] > helix_intersecting_points_2d_right[i-1, 0] and helix_intersecting_points_2d_right[i, 1] > helix_intersecting_points_2d_right[i-1, 1] and helix_intersecting_points_2d_right[i+1, 0] > helix_intersecting_points_2d_right[i, 0] and helix_intersecting_points_2d_right[i+1, 1] > helix_intersecting_points_2d_right[i, 1]:
             delete_index_right = i
             break
 
@@ -114,22 +117,22 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         # 删除该点及后续所有点
         helix_intersecting_points_2d_right = helix_intersecting_points_2d_right[:delete_index_right]
 
-        # # 找到不正常点在原始曲线中的位置
-        # point_to_find = helix_intersecting_points_right[delete_index_right]
-        # helix_index = np.where((helix_surface_points_right == point_to_find).all(axis=1))[0][0]
-        # original_point_index_right, turn_index_right = point_indices_right[helix_index]
+        # 找到不正常点在原始曲线中的位置
+        point_to_find = helix_intersecting_points_right[delete_index_right]
+        helix_index = np.where((helix_surface_points_right == point_to_find).all(axis=1))[0][0]
+        original_point_index_right, turn_index_right = point_indices_right[helix_index]
 
         # # 原始曲线中的位置标注
-        # original_points_abnormal_right = fixed_curve_points_right[original_point_index_right:]
+        original_points_abnormal_right = fixed_curve_points_right[len(fixed_curve_points_right) - original_point_index_right:]
 
         # # 第一个不符合条件的点在原始曲线中的切线斜率
-        # tangent_anomalies_index_right = libs.calculate_tangent(fixed_curve_points, original_point_index_right)
-        # anomalies_ang_right = 90 - np.degrees(np.tan(tangent_anomalies_index_right[0] / tangent_anomalies_index_right[1]))
+        tangent_anomalies_index_right = libs.calculate_tangent(fixed_curve_points_right, len(fixed_curve_points_right) - original_point_index_right)
+        anomalies_ang_right = 90 - np.degrees(np.tan(tangent_anomalies_index_right[0] / tangent_anomalies_index_right[1]))
 
     # 左侧点 查找第一个 x 坐标小于前一个点 和 y 坐标大于前一个点的点的索引  不检测前10个点 防止误判
     delete_index_left = None
-    for i in range(10, len(helix_intersecting_points_2d_left)):
-        if helix_intersecting_points_2d_left[i, 0] < helix_intersecting_points_2d_left[i-1, 0] and helix_intersecting_points_2d_left[i, 1] > helix_intersecting_points_2d_left[i-1, 1]:
+    for i in range(10, len(helix_intersecting_points_2d_left)-1):
+        if helix_intersecting_points_2d_left[i, 0] < helix_intersecting_points_2d_left[i-1, 0] and helix_intersecting_points_2d_left[i, 1] > helix_intersecting_points_2d_left[i-1, 1] and helix_intersecting_points_2d_left[i+1, 0] < helix_intersecting_points_2d_left[i, 0] and helix_intersecting_points_2d_left[i+1, 1] > helix_intersecting_points_2d_left[i, 1]:
             delete_index_left = i
             break
 
@@ -142,17 +145,17 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         # 删除该点及后续所有点
         helix_intersecting_points_2d_left = helix_intersecting_points_2d_left[:delete_index_left]
 
-        # # 找到不正常点在原始曲线中的位置
-        # point_to_find = helix_intersecting_points_left[delete_index_left]
-        # helix_index = np.where((helix_surface_points_left == point_to_find).all(axis=1))[0][0]
-        # original_point_index_left, turn_index_left = point_indices_left[helix_index]
+        # 找到不正常点在原始曲线中的位置
+        point_to_find = helix_intersecting_points_left[delete_index_left]
+        helix_index = np.where((helix_surface_points_left == point_to_find).all(axis=1))[0][0]
+        original_point_index_left, turn_index_left = point_indices_left[helix_index]
 
-        # # 原始曲线中的位置标注
-        # original_points_abnormal_left = fixed_curve_points_left[:original_point_index_left-len(fixed_curve_points_right)]
+        # 原始曲线中的位置标注
+        original_points_abnormal_left = fixed_curve_points_left[original_point_index_left - len(fixed_curve_points_right):]
 
-        # # 第一个不符合条件的点在原始曲线中的切线斜率
-        # tangent_anomalies_index_left = libs.calculate_tangent(fixed_curve_points, original_point_index_left)
-        # anomalies_ang_left = 90 + np.degrees(np.tan(tangent_anomalies_index_left[0] / tangent_anomalies_index_left[1]))
+        # 第一个不符合条件的点在原始曲线中的切线斜率
+        tangent_anomalies_index_left = libs.calculate_tangent(fixed_curve_points_left, original_point_index_left - len(fixed_curve_points_right))
+        anomalies_ang_left = 90 + np.degrees(np.tan(tangent_anomalies_index_left[0] / tangent_anomalies_index_left[1]))
 
     # ********************************
 
@@ -172,6 +175,8 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # 将 helix_intersecting_points_2d_combined 处理成平滑曲线上的点，点间距与原图形一致
     helix_intersecting_points_2d_smoothed = libs.smooth_curve(helix_intersecting_points_2d_combined, segment_length)
 
+    # 拆分成大于0 和 小于0 两部分
+    helix_intersecting_points_2d_smoothed_right, helix_intersecting_points_2d_smoothed_left = libs.split_and_sort_points(helix_intersecting_points_2d_smoothed)
     # ********************************
 
     # 找出 helix_intersecting_points_2d 中 右侧 x 坐标大于 0 的点 和 左侧 x 坐标小于 0 的点
@@ -183,27 +188,39 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # ********************************
 
     # 标注 helix_intersecting_points_2d_smoothed 中 x 坐标小于上一个点的点
-    anomalies_smoothed = []
+    anomalies_smoothed = np.empty((0, 2))
 
     # 当 x 坐标小于 0 时，找到不符合条件的前一个点
-    for i in range(1, len(helix_intersecting_points_2d_smoothed)):
-        if helix_intersecting_points_2d_smoothed[i, 0] < 0:
-            if helix_intersecting_points_2d_smoothed[i, 0] < helix_intersecting_points_2d_smoothed[i - 1, 0]:
-                anomalies_smoothed.append(helix_intersecting_points_2d_smoothed[i - 1])
+    for i in range(len(helix_intersecting_points_2d_smoothed_right) - 1):
+        if helix_intersecting_points_2d_smoothed_right[i, 0] < 0:
+            if helix_intersecting_points_2d_smoothed_right[i - 1, 0] < helix_intersecting_points_2d_smoothed_right[i, 0] < helix_intersecting_points_2d_smoothed_right[i + 1, 0]:
+                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_right[i:]))
+
+    for i in range(10, len(helix_intersecting_points_2d_smoothed_right) - 1):
+        if helix_intersecting_points_2d_smoothed_right[i, 0] < 0:
+            if helix_intersecting_points_2d_smoothed_right[i - 1, 1] < helix_intersecting_points_2d_smoothed_right[i, 1] < helix_intersecting_points_2d_smoothed_right[i + 1, 1]:
+                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_right[i:]))
 
     # 当 x 坐标大于 0 时，找到不符合条件的后一个点
-    for i in range(len(helix_intersecting_points_2d_smoothed) - 1):
-        if helix_intersecting_points_2d_smoothed[i, 0] > 0:
-            if helix_intersecting_points_2d_smoothed[i, 0] > helix_intersecting_points_2d_smoothed[i + 1, 0]:
-                anomalies_smoothed.append(helix_intersecting_points_2d_smoothed[i + 1])
+    for i in range(len(helix_intersecting_points_2d_smoothed_left) - 1):
+        if helix_intersecting_points_2d_smoothed_left[i, 0] > 0:
+            if helix_intersecting_points_2d_smoothed_left[i, 0] > helix_intersecting_points_2d_smoothed_left[i + 1, 0]:
+                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_left[i:]))
+
+    for i in range(10,len(helix_intersecting_points_2d_smoothed_left) - 1):
+        if helix_intersecting_points_2d_smoothed_left[i, 0] > 0:
+            if helix_intersecting_points_2d_smoothed_left[i, 1] < helix_intersecting_points_2d_smoothed_left[i + 1, 1]:
+                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_left[i:]))
 
     anomalies_smoothed = np.array(anomalies_smoothed)
 
     # 如果反向弯折的点过多则报错
-    if len(anomalies_smoothed) / 2 > 50:
-        print(f"干涉曲线齿根反向弯折的点过多:{len(anomalies_smoothed) / 2},需要加大砂轮安装角或加大砂轮杆偏移工件中心距离")
-        sys.exit()
+    # if len(anomalies_smoothed) / 2 > 5000:
+    #     print(f"干涉曲线齿根反向弯折的点过多:{len(anomalies_smoothed) / 2},需要加大砂轮安装角或加大砂轮杆偏移工件中心距离")
+    #     sys.exit()
 
+    # 删掉反折点
+    helix_intersecting_points_2d_smoothed = libs.remove_points(helix_intersecting_points_2d_smoothed, anomalies_smoothed)
     # ********************************
 
     # 获取 helix_intersecting_points_2d_smoothed 中 y 坐标最大点
@@ -221,24 +238,6 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
 
     # 平移所有点到新坐标系
     helix_intersecting_points_2d_translated = helix_intersecting_points_2d_smoothed - reference_origin
-
-    # 处理 helix_intersecting_points_2d_translated 中的点
-    points_to_delete = []
-
-    # 当 x 坐标小于 0 时，删除不符合条件的前一个点
-    for i in range(1, len(helix_intersecting_points_2d_translated)):
-        if helix_intersecting_points_2d_translated[i, 0] < 0:
-            if helix_intersecting_points_2d_translated[i, 0] < helix_intersecting_points_2d_translated[i - 1, 0]:
-                points_to_delete.append(i - 1)
-
-    # 当 x 坐标大于 0 时，删除不符合条件的后一个点
-    for i in range(len(helix_intersecting_points_2d_translated) - 1):
-        if helix_intersecting_points_2d_translated[i, 0] > 0:
-            if helix_intersecting_points_2d_translated[i, 0] > helix_intersecting_points_2d_translated[i + 1, 0]:
-                points_to_delete.append(i + 1)
-
-    # 删除需要删除的点
-    helix_intersecting_points_2d_translated = np.delete(helix_intersecting_points_2d_translated, points_to_delete, axis=0)
 
     # 处理 helix_intersecting_points_2d_translated 使其等距，并将最高点设为 (0,0)
     helix_intersecting_points_2d_translated = libs.redistribute_points_equally(helix_intersecting_points_2d_translated, num_curve_points)
@@ -415,7 +414,7 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
 
         # 标注 x 坐标小于上一个点的点
         if len(anomalies_smoothed) > 0:
-            ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#0053ac', s=10, label='齿底异常点')
+            ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#1ae621', s=10, label='齿底异常点')
 
         # 标注 左右侧曲线上有交叉的点
         if len(helix_intersecting_points_2d_over_right) > 0:
@@ -423,17 +422,17 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         if len(helix_intersecting_points_2d_over_left) > 0:
             ax3.scatter(helix_intersecting_points_2d_over_left[:, 0], helix_intersecting_points_2d_over_left[:, 1], color='#2cb5ff', s=10, label='左侧齿顶异常点')
 
-        # # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
-        # if delete_index_right is not None:
-        #     ax3.scatter(original_points_abnormal_right[:, 0], original_points_abnormal_right[:, 1], color='green', s=5, label=f'异常点在原始轨道的右侧位置 (螺旋圈数: {turn_index_right}, 点位号: {original_point_index_right})')
-        # if delete_index_left is not None:
-        #     ax3.scatter(original_points_abnormal_left[:, 0], original_points_abnormal_left[:, 1], color='green', s=5, label=f'异常点在原始轨道的左侧位置 (螺旋圈数: {turn_index_left}, 点位号: {original_point_index_left})')
+        # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
+        if delete_index_right is not None:
+            ax3.scatter(original_points_abnormal_right[:, 0], original_points_abnormal_right[:, 1], color='green', s=5, label=f'异常点在原始轨道的右侧位置 (螺旋圈数: {turn_index_right}, 点位号: {original_point_index_right})')
+        if delete_index_left is not None:
+            ax3.scatter(original_points_abnormal_left[:, 0], original_points_abnormal_left[:, 1], color='green', s=5, label=f'异常点在原始轨道的左侧位置 (螺旋圈数: {turn_index_left}, 点位号: {original_point_index_left})')
 
-        # # 标注原始曲线中第一个不符合条件的点的切线斜率
-        # if tangent_anomalies_index_right is not None:
-        #     ax3.quiver(original_points_abnormal_right[0, 0], original_points_abnormal_right[0, 1], tangent_anomalies_index_right[0], tangent_anomalies_index_right[1], color='red', scale=5, label=f'右侧第一个异常点的切线斜率: {anomalies_ang_right:.4f}')
-        # if tangent_anomalies_index_left is not None:
-        #     ax3.quiver(original_points_abnormal_left[0, 0], original_points_abnormal_left[0, 1], tangent_anomalies_index_left[0], tangent_anomalies_index_left[1], color='red', scale=5, label=f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}')
+        # 标注原始曲线中第一个不符合条件的点的切线斜率
+        if tangent_anomalies_index_right is not None:
+            ax3.quiver(original_points_abnormal_right[0, 0], original_points_abnormal_right[0, 1], tangent_anomalies_index_right[0], tangent_anomalies_index_right[1], color='red', scale=5, label=f'右侧第一个异常点的切线斜率: {anomalies_ang_right:.4f}')
+        if tangent_anomalies_index_left is not None:
+            ax3.quiver(original_points_abnormal_left[0, 0], original_points_abnormal_left[0, 1], tangent_anomalies_index_left[0], tangent_anomalies_index_left[1], color='red', scale=5, label=f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}')
 
         ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.5))  # 调整图例位置
         ax3.set_aspect('equal')
