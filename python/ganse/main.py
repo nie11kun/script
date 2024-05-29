@@ -2,6 +2,7 @@ from library.curve_to_wheel_points import curve_to_wheel_points
 from library.calc import remove_leading_whitespace, parse_coordinates, plot_coordinates, read_file
 from decimal import Decimal
 import numpy as np
+import matplotlib.pyplot as plt
 
 # 砂轮杆偏移工件中心最大距离
 gan_distance_max = 20
@@ -106,3 +107,5 @@ if dia_num >= 1:
 
     # 绘制坐标
     plot_coordinates(points1, points2)
+
+plt.show()

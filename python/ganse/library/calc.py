@@ -463,4 +463,5 @@ def plot_coordinates(points1, points2):
     plt.ylabel('Y')
     plt.title('Plot of Coordinates')
     plt.legend()
-    plt.show()
+    plt.show(block=False) # 显示图表但不会阻塞程序的执行
+    plt.pause(3)  # 暂停以便图表渲染
