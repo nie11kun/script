@@ -50,8 +50,8 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # 如果没有 x0 这一点则添加
     curve_points = libs.add_point_if_missing(curve_points=curve_points, x0=0)
 
-    # 按照逆时针 x0 为原点 从小到大排列
-    curve_points = libs.sort_points(curve_points)
+    # 按照逆时针 x0 为原点 小于 x0 递减 大于 x0 递增
+    curve_points = libs.sort_points(curve_points, mode='apart')
 
     # 获取 curve_points 的点个数
     num_curve_points = len(curve_points)
@@ -61,8 +61,8 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     fixed_curve_points = fixed_curve_points - new_origin
 
     # 提取 x 负向和正向部分
-    fixed_curve_points_right = libs.sort_points(fixed_curve_points[fixed_curve_points[:, 0] <= 0], positive=False)
-    fixed_curve_points_left = libs.sort_points(fixed_curve_points[fixed_curve_points[:, 0] >= 0])
+    fixed_curve_points_right = libs.sort_points(fixed_curve_points[fixed_curve_points[:, 0] <= 0], mode='desc')
+    fixed_curve_points_left = libs.sort_points(fixed_curve_points[fixed_curve_points[:, 0] >= 0], mode='asc')
 
     # 计算曲线点的法线
     normals = libs.compute_normals(curve_points)
@@ -130,10 +130,10 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         original_point_index_right, turn_index_right = point_indices_right[helix_index]
 
         # # 原始曲线中的位置标注
-        original_points_abnormal_right = fixed_curve_points_right[len(fixed_curve_points_right) - original_point_index_right:]
+        original_points_abnormal_right = fixed_curve_points_right[original_point_index_right - len(fixed_curve_points_right):]
 
         # # 第一个不符合条件的点在原始曲线中的切线斜率
-        tangent_anomalies_index_right = libs.calculate_tangent(fixed_curve_points_right, len(fixed_curve_points_right) - original_point_index_right)
+        tangent_anomalies_index_right = libs.calculate_tangent(fixed_curve_points_right, original_point_index_right - len(fixed_curve_points_right))
         anomalies_ang_right = 90 - np.degrees(np.tan(tangent_anomalies_index_right[0] / tangent_anomalies_index_right[1]))
 
     # 左侧点 查找第一个 x 坐标小于前一个点 和 y 坐标大于前一个点的点的索引  不检测前10个点 防止误判
@@ -158,10 +158,10 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         original_point_index_left, turn_index_left = point_indices_left[helix_index]
 
         # 原始曲线中的位置标注
-        original_points_abnormal_left = fixed_curve_points_left[original_point_index_left - len(fixed_curve_points_right):]
+        original_points_abnormal_left = fixed_curve_points_left[original_point_index_left:]
 
         # 第一个不符合条件的点在原始曲线中的切线斜率
-        tangent_anomalies_index_left = libs.calculate_tangent(fixed_curve_points_left, original_point_index_left - len(fixed_curve_points_right))
+        tangent_anomalies_index_left = libs.calculate_tangent(fixed_curve_points_left, original_point_index_left)
         anomalies_ang_left = 90 + np.degrees(np.tan(tangent_anomalies_index_left[0] / tangent_anomalies_index_left[1]))
 
     # ********************************
@@ -428,15 +428,15 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
 
         # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
         if delete_index_right is not None:
-            ax3.scatter(original_points_abnormal_right[:, 0], original_points_abnormal_right[:, 1], color='green', s=5, label=f'异常点在原始轨道的右侧位置 (螺旋圈数: {turn_index_right}, 点位号: {original_point_index_right})')
+            ax3.scatter(original_points_abnormal_right[:, 0], original_points_abnormal_right[:, 1], color='green', s=5, label=f'异常点在原始轨道的右侧位置 (螺旋圈数: {turn_index_right}, 点位号: {original_point_index_right - len(fixed_curve_points_right)})')
         if delete_index_left is not None:
             ax3.scatter(original_points_abnormal_left[:, 0], original_points_abnormal_left[:, 1], color='green', s=5, label=f'异常点在原始轨道的左侧位置 (螺旋圈数: {turn_index_left}, 点位号: {original_point_index_left})')
 
         # 标注原始曲线中第一个不符合条件的点的切线斜率
         if tangent_anomalies_index_right is not None:
-            ax3.quiver(original_points_abnormal_right[0, 0], original_points_abnormal_right[0, 1], tangent_anomalies_index_right[0], tangent_anomalies_index_right[1], color='red', scale=5, label=f'右侧第一个异常点的切线斜率: {anomalies_ang_right:.4f}')
+            ax3.quiver(original_points_abnormal_right[0, 0], original_points_abnormal_right[0, 1], tangent_anomalies_index_right[0], tangent_anomalies_index_right[1], color='#e80505', scale=7, label=f'右侧第一个异常点的切线斜率: {anomalies_ang_right:.4f}')
         if tangent_anomalies_index_left is not None:
-            ax3.quiver(original_points_abnormal_left[0, 0], original_points_abnormal_left[0, 1], tangent_anomalies_index_left[0], tangent_anomalies_index_left[1], color='red', scale=5, label=f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}')
+            ax3.quiver(original_points_abnormal_left[0, 0], original_points_abnormal_left[0, 1], tangent_anomalies_index_left[0], tangent_anomalies_index_left[1], color='#d406a4', scale=7, label=f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}')
 
         ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.5))  # 调整图例位置
         ax3.set_aspect('equal')

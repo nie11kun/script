@@ -73,12 +73,12 @@ def add_point_if_missing(curve_points, x0=0):
     return updated_points
 
 # 排列坐标数组 以0 为基准 按照从小到大
-def sort_points(points, positive=True, x0=0):
+def sort_points(points, mode='asc', x0=0):
     # 将点分为 x 小于零和 x 大于等于零的两部分
     points_left = points[points[:, 0] < 0]
     points_right = points[points[:, 0] >= 0]
 
-    if positive == True:
+    if mode == 'asc':
         # 分别排序
         points_left_sorted = points_left[np.argsort(points_left[:, 0])]  # 按 x 从小到大排序
         points_right_sorted = points_right[np.argsort(points_right[:, 0])]  # 按 x 从小到大排序
@@ -86,9 +86,15 @@ def sort_points(points, positive=True, x0=0):
         # 合并排序后的数组
         sorted_points = np.vstack((points_left_sorted, points_right_sorted))
     else:
-        # 分别排序
-        points_left_sorted = points_left[np.argsort(points_left[:, 0])[::-1]]
-        points_right_sorted = points_right[np.argsort(points_right[:, 0])[::-1]]
+        if mode == 'desc':
+            # 分别排序
+            points_left_sorted = points_left[np.argsort(points_left[:, 0])[::-1]]
+            points_right_sorted = points_right[np.argsort(points_right[:, 0])[::-1]]
+        else:
+            if mode == 'apart':
+                # 分别排序
+                points_left_sorted = points_left[np.argsort(points_left[:, 0])[::-1]]
+                points_right_sorted = points_right[np.argsort(points_right[:, 0])]
 
         # 合并排序后的数组
         sorted_points = np.vstack((points_right_sorted, points_left_sorted))
