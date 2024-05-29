@@ -323,24 +323,26 @@ def rotate_to_xy_plane(points):
         projected_points.append(projected_point)
     return np.array(projected_points)
 
-# 将所有点等距处理，最高点设置为指定的原点位置
-def redistribute_points_equally(points, num_points, origin=np.array([0, 0])):
+# 当 y 坐标大于某个值时，将其修改为这个值
+def limit_y_coordinate(array, limit):
+    for point in array:
+        if point[1] > limit:
+            point[1] = limit
+    return array
+
+# 将所有点等距处理
+def redistribute_points_equally(points, num_points):
     """
     将所有点等距处理，最高点设置为指定的原点位置。
 
     参数:
     points -- 二维数组，形状为 (n, 2)，其中 n 是点的数量
     num_points -- 需要生成的等距点的数量
-    origin -- 新的原点位置，默认值为 (0, 0)
 
     返回:
     等距处理后的二维数组
     """
-    # 找到 Y 轴最高的点，并将其坐标设为 origin
-    max_y_index = np.argmax(points[:, 1])
-    max_y_point = points[max_y_index]
-    translation = origin - max_y_point
-    translated_points = points + translation
+    translated_points = points
 
     # 计算每个点到最高点的累积距离
     distances = np.sqrt(np.sum(np.diff(translated_points, axis=0)**2, axis=1))

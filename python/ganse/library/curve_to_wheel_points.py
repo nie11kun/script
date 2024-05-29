@@ -240,17 +240,26 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     x_zero_index = libs.find_closest_point_to_zero(helix_intersecting_points_2d_smoothed)
     reference_origin = helix_intersecting_points_2d_smoothed[x_zero_index]
 
-    # 平移所有点到新坐标系
-    helix_intersecting_points_2d_translated = helix_intersecting_points_2d_smoothed - reference_origin - dresser_r
+    # 数组值传递给 helix_intersecting_points_2d_translated 不能直接赋值 否则后续计算会影响原数组
+    helix_intersecting_points_2d_translated = helix_intersecting_points_2d_smoothed - 0
 
-    # 处理 helix_intersecting_points_2d_translated 使其等距，并将最高点设为 (0,-dress_r)
-    helix_intersecting_points_2d_translated = libs.redistribute_points_equally(helix_intersecting_points_2d_translated, num_curve_points, origin=[0, -dresser_r])
+    # 平移所有点的 y 坐标到指定点为原点
+    helix_intersecting_points_2d_translated[:, 1] += - reference_origin[1] - dresser_r
+
+    # 处理 helix_intersecting_points_2d_translated 使其等距
+    helix_intersecting_points_2d_translated = libs.redistribute_points_equally(helix_intersecting_points_2d_translated, num_curve_points)
+
+    # 如果 y坐标 有大于 指定值 的点 则修改其 y 为指定值
+    helix_intersecting_points_2d_translated = libs.limit_y_coordinate(helix_intersecting_points_2d_translated, -dresser_r)
 
     # 修整轮廓线
     helix_intersecting_points_2d_translated_contour = libs.generate_contour_points(helix_intersecting_points_2d_translated, contour_distance=dresser_r, point_spacing=segment_length)
 
-    # 处理 helix_intersecting_points_2d_translated_contour 使其等距，并将最高点设为 (0,0)
-    helix_intersecting_points_2d_translated_contour = libs.redistribute_points_equally(helix_intersecting_points_2d_translated_contour, num_curve_points, origin=[0, 0])
+    # 处理 helix_intersecting_points_2d_translated_contour 使其等距
+    helix_intersecting_points_2d_translated_contour = libs.redistribute_points_equally(helix_intersecting_points_2d_translated_contour, num_curve_points)
+
+    # 如果 y坐标 有大于 0 的点 则修改其 y 为 0
+    helix_intersecting_points_2d_translated_contour = libs.limit_y_coordinate(helix_intersecting_points_2d_translated_contour, 0)
 
     # ********************************
 
@@ -328,6 +337,10 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # x 坐标小于0的点反向排序
     right_points = right_points[::-1]
 
+    # 左右两边第一个点都为 0,0
+    right_points = np.vstack((np.array([[0, 0]]), right_points))
+    left_points = np.vstack((np.array([[0, 0]]), left_points))
+
     # 将直径转换为4位小数的字符串
     wheel_dia_str = f"{wheel_dia:.4f}"
 
@@ -340,8 +353,8 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     DIA_{wheel_dia_str}:
     IF DRESSER[40]==1;
     ;*********************************************
-    DRESSER[41]={angle_before_max:.4f};外部齿形程序右起点角度(竖直向下夹角)
-    DRESSER[42]={angle_after_max:.4f};外部齿形程序左起点角度(竖直向下夹角)
+    DRESSER[41]=90;外部齿形程序右起点角度(竖直向下夹角)
+    DRESSER[42]=90;外部齿形程序左起点角度(竖直向下夹角)
     DRESSER[43]=0;外部齿形程序顶部平台长度(预留参数)
     DRESSER[45]=0;齿形右终点角度(竖直向下夹角)
     DRESSER[46]=0;齿形左终点角度(竖直向下夹角)
