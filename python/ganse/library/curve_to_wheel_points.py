@@ -53,6 +53,9 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # 按照逆时针 x0 为原点 从小到大排列
     curve_points = libs.sort_points(curve_points)
 
+    # 获取 curve_points 的点个数
+    num_curve_points = len(curve_points)
+
     # 将 dxf 曲线转换为 3 维坐标并平移到新坐标系原点
     fixed_curve_points = np.hstack((curve_points, np.zeros((curve_points.shape[0], 1))))
     fixed_curve_points = fixed_curve_points - new_origin
@@ -85,8 +88,8 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # ********************************
 
     # 计算螺旋曲面上每条曲线上的点的法线是否与新坐标系上的直线相交
-    helix_intersecting_points_right = libs.find_intersecting_points(helix_surface_points_right, helix_surface_normals_right, line_point, line_direction, min_distance)
-    helix_intersecting_points_left = libs.find_intersecting_points(helix_surface_points_left, helix_surface_normals_left, line_point, line_direction, min_distance)
+    helix_intersecting_points_right = libs.find_intersecting_points(helix_surface_points_right, helix_surface_normals_right, line_point, line_direction, min_distance, break_num=num_curve_points * 1000)
+    helix_intersecting_points_left = libs.find_intersecting_points(helix_surface_points_left, helix_surface_normals_left, line_point, line_direction, min_distance, break_num=num_curve_points * 1000)
 
     # 将 helix_intersecting_points 转换到新坐标系中
     helix_intersecting_points_translated_right = helix_intersecting_points_right - new_origin
@@ -97,6 +100,10 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # 将 helix_intersecting_points 转换到新坐标系的 xy 平面
     helix_intersecting_points_2d_right = libs.rotate_to_xy_plane(helix_intersecting_points_new_coordinate_system_right)
     helix_intersecting_points_2d_left = libs.rotate_to_xy_plane(helix_intersecting_points_new_coordinate_system_left)
+
+    # 不按照 x 排序  按照原始点的顺序处理点
+    # helix_intersecting_points_2d_right = libs.sort_points(helix_intersecting_points_2d_right, positive=False)
+    # helix_intersecting_points_2d_left = libs.sort_points(helix_intersecting_points_2d_left, positive=True)
 
     # ********************************
 
@@ -169,9 +176,6 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # 合并点
     helix_intersecting_points_2d_combined = np.vstack((helix_intersecting_points_2d_filtered_right, helix_intersecting_points_2d_filtered_left))
 
-    # 获取 curve_points 的点个数
-    num_curve_points = len(curve_points)
-
     # 将 helix_intersecting_points_2d_combined 处理成平滑曲线上的点，点间距与原图形一致
     helix_intersecting_points_2d_smoothed = libs.smooth_curve(helix_intersecting_points_2d_combined, segment_length)
 
@@ -191,26 +195,26 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     anomalies_smoothed = np.empty((0, 2))
 
     # 当 x 坐标小于 0 时，找到不符合条件的前一个点
-    for i in range(len(helix_intersecting_points_2d_smoothed_right) - 1):
+    for i in range(1, len(helix_intersecting_points_2d_smoothed_right) - 1):
         if helix_intersecting_points_2d_smoothed_right[i, 0] < 0:
             if helix_intersecting_points_2d_smoothed_right[i - 1, 0] < helix_intersecting_points_2d_smoothed_right[i, 0] < helix_intersecting_points_2d_smoothed_right[i + 1, 0]:
-                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_right[i:]))
+                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_right[i-1], helix_intersecting_points_2d_smoothed_right[i]))
 
     for i in range(10, len(helix_intersecting_points_2d_smoothed_right) - 1):
         if helix_intersecting_points_2d_smoothed_right[i, 0] < 0:
             if helix_intersecting_points_2d_smoothed_right[i - 1, 1] < helix_intersecting_points_2d_smoothed_right[i, 1] < helix_intersecting_points_2d_smoothed_right[i + 1, 1]:
-                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_right[i:]))
+                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_right[i-1], helix_intersecting_points_2d_smoothed_right[i]))
 
     # 当 x 坐标大于 0 时，找到不符合条件的后一个点
-    for i in range(len(helix_intersecting_points_2d_smoothed_left) - 1):
+    for i in range(1, len(helix_intersecting_points_2d_smoothed_left) - 1):
         if helix_intersecting_points_2d_smoothed_left[i, 0] > 0:
-            if helix_intersecting_points_2d_smoothed_left[i, 0] > helix_intersecting_points_2d_smoothed_left[i + 1, 0]:
-                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_left[i:]))
+            if helix_intersecting_points_2d_smoothed_left[i - 1, 0] > helix_intersecting_points_2d_smoothed_left[i, 0] > helix_intersecting_points_2d_smoothed_left[i + 1, 0]:
+                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_left[i-1], helix_intersecting_points_2d_smoothed_left[i]))
 
     for i in range(10,len(helix_intersecting_points_2d_smoothed_left) - 1):
         if helix_intersecting_points_2d_smoothed_left[i, 0] > 0:
-            if helix_intersecting_points_2d_smoothed_left[i, 1] < helix_intersecting_points_2d_smoothed_left[i + 1, 1]:
-                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_left[i:]))
+            if helix_intersecting_points_2d_smoothed_left[i - 1, 1] < helix_intersecting_points_2d_smoothed_left[i, 1] < helix_intersecting_points_2d_smoothed_left[i + 1, 1]:
+                anomalies_smoothed = np.vstack((anomalies_smoothed, helix_intersecting_points_2d_smoothed_left[i-1], helix_intersecting_points_2d_smoothed_left[i]))
 
     anomalies_smoothed = np.array(anomalies_smoothed)
 

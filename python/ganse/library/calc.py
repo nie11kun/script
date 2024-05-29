@@ -147,14 +147,14 @@ def rotation_matrix_y(alpha):
 # 定义一个函数，绕某个轴旋转点和法线
 def rotate_points_and_normals(points, normals, angle, pivot=np.array([0, 0])):
     translated_points = points - pivot  # 平移点到原点
-    translated_normals = normals - pivot  # 平移点到原点
+    translated_normals = normals  # 法向量不需要平移
     points_3d = np.hstack((translated_points, np.zeros((translated_points.shape[0], 1))))  # 添加 z 轴坐标
     normals_3d = np.hstack((translated_normals, np.zeros((translated_normals.shape[0], 1))))  # 添加 z 轴坐标
     R = rotation_matrix_y(np.radians(angle))  # 计算旋转矩阵
     rotated_points = points_3d @ R.T  # 旋转点
     rotated_normals = normals_3d @ R.T  # 旋转法线
     rotated_points[:, :2] += pivot  # 平移回原位置
-    rotated_normals[:, :2] += pivot  # 平移回原位置
+    rotated_normals = rotated_normals  # 法向量不需要平移
     return rotated_points, rotated_normals
 
 # 计算两条直线之间的最短距离
@@ -165,19 +165,26 @@ def line_to_line_distance(p1, d1, p2, d2):
     if norm_cross_prod == 0:  # 处理平行的情况
         if np.linalg.norm(d1) != 0:
             return np.linalg.norm(np.cross(d1, (p2 - p1))) / np.linalg.norm(d1)
+        else:
+            return None  # 避免除以零的情况
     else:
         return np.abs(np.dot(cross_prod, (p2 - p1))) / norm_cross_prod
 
-# 计算与指定直线相交的点
-def find_intersecting_points(points, normals, line_point, line_direction, min_distance=0.001):
+# 计算与指定直线相交的点 可自定义多少个点检测不到就跳出循环
+def find_intersecting_points(points, normals, line_point, line_direction, min_distance=0.001, break_num=100000000):
     intersecting_points = []
+    i_count = 0
     for i in range(len(points)):
+        i_count += 1
         normal_line_point = points[i]
         normal_line_direction = normals[i]
         distance = line_to_line_distance(normal_line_point, normal_line_direction, line_point, line_direction)
         if distance is not None:
             if distance < min_distance:
                 intersecting_points.append(points[i])
+                i_count = 0
+        if i_count > break_num:
+            break
     if len(intersecting_points) == 0:
         return np.empty((0, 3))  # 返回一个空的二维数组
     return np.array(intersecting_points)
@@ -198,7 +205,7 @@ def generate_helix_surface(points, normals, num_turns=2000, turn_angle=0.01, tur
             [0, np.sin(np.radians(angle)), np.cos(np.radians(angle))]
         ])
         rotated_points = (points @ R.T) + np.array([distance, 0, 0])
-        rotated_normals = (normals @ R.T) + np.array([distance, 0, 0])
+        rotated_normals = (normals @ R.T) # 法向量不需要平移
         surface_points.append(rotated_points)
         surface_normals.append(rotated_normals)
         point_indices.extend([(j, i) for j in range(len(points))])  # 追踪点的来源
