@@ -4,7 +4,7 @@ import sys
 import platform
 import library.calc as libs
 
-def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead, if_plot=False):
+def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead, dresser_r=0, if_plot=False):
     # 螺旋升角
     angle = np.rad2deg(np.arctan2(work_lead, np.pi * mid_dia))
     print(f'标准螺旋升角: {angle:.4f}')
@@ -241,15 +241,21 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     reference_origin = helix_intersecting_points_2d_smoothed[max_y_index]
 
     # 平移所有点到新坐标系
-    helix_intersecting_points_2d_translated = helix_intersecting_points_2d_smoothed - reference_origin
+    helix_intersecting_points_2d_translated = helix_intersecting_points_2d_smoothed - reference_origin - dresser_r
 
-    # 处理 helix_intersecting_points_2d_translated 使其等距，并将最高点设为 (0,0)
-    helix_intersecting_points_2d_translated = libs.redistribute_points_equally(helix_intersecting_points_2d_translated, num_curve_points)
+    # 处理 helix_intersecting_points_2d_translated 使其等距，并将最高点设为 (0,-dress_r)
+    helix_intersecting_points_2d_translated = libs.redistribute_points_equally(helix_intersecting_points_2d_translated, num_curve_points, origin=[0, -dresser_r])
+
+    # 修整轮廓线
+    helix_intersecting_points_2d_translated_contour = libs.generate_contour_points(helix_intersecting_points_2d_translated, contour_distance=dresser_r, point_spacing=segment_length)
+
+    # 处理 helix_intersecting_points_2d_translated_contour 使其等距，并将最高点设为 (0,0)
+    helix_intersecting_points_2d_translated_contour = libs.redistribute_points_equally(helix_intersecting_points_2d_translated_contour, num_curve_points, origin=[0, 0])
 
     # ********************************
 
     # 将所有点坐标放入字符串中，每行按照 'x 空格 y' 的模式
-    point_string = "\n".join([f"{x} {y}" for x, y in helix_intersecting_points_2d_translated])
+    point_string = "\n".join([f"{x} {y}" for x, y in helix_intersecting_points_2d_translated_contour])
 
     # 获取最高点
     max_y_index = np.argmax(helix_intersecting_points_2d_translated[:, 1])
@@ -266,43 +272,58 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # 计算齿宽
     width_max = max_x_point[0] - min_x_point[0]
 
+    # 获取滚轮修整最高点
+    max_y_index_contour = np.argmax(helix_intersecting_points_2d_translated_contour[:, 1])
+    min_y_index_contour = np.argmin(helix_intersecting_points_2d_translated_contour[:, 1])
+    max_y_point_contour = helix_intersecting_points_2d_translated_contour[max_y_index_contour]
+    min_y_point_contour = helix_intersecting_points_2d_translated_contour[min_y_index_contour]
+    max_x_index_contour = np.argmax(helix_intersecting_points_2d_translated_contour[:, 0])
+    min_x_index_contour = np.argmin(helix_intersecting_points_2d_translated_contour[:, 0])
+    max_x_point_contour = helix_intersecting_points_2d_translated_contour[max_x_index_contour]
+    min_x_point_contour = helix_intersecting_points_2d_translated_contour[min_x_index_contour]
+
+    # 计算修整高度差
+    height_difference_contour = max_y_point_contour[1] - min_y_point_contour[1]
+    # 计算修整齿宽
+    width_max_contour = max_x_point_contour[0] - min_x_point_contour[0]
+
     # 最高点的前一个点的切线与垂直向下方向的夹角
     if max_y_index > 0:
-        tangent_before_max = libs.calculate_tangent(helix_intersecting_points_2d_translated, max_y_index - 1)
+        tangent_before_max = libs.calculate_tangent(helix_intersecting_points_2d_translated_contour, max_y_index - 1)
         angle_before_max = libs.calculate_angle(-1 * tangent_before_max)
     else:
         angle_before_max = None
 
     # 最高点的后一个点的切线与垂直向下方向的夹角
-    if max_y_index < len(helix_intersecting_points_2d_translated) - 1:
-        tangent_after_max = libs.calculate_tangent(helix_intersecting_points_2d_translated, max_y_index + 1)
+    if max_y_index < len(helix_intersecting_points_2d_translated_contour) - 1:
+        tangent_after_max = libs.calculate_tangent(helix_intersecting_points_2d_translated_contour, max_y_index + 1)
         angle_after_max = libs.calculate_angle(tangent_after_max)
     else:
         angle_after_max = None
 
     # 第二个点的切线与垂直向下方向的夹角
-    if len(helix_intersecting_points_2d_translated) > 1:
-        tangent_second = libs.calculate_tangent(helix_intersecting_points_2d_translated, 1)
+    if len(helix_intersecting_points_2d_translated_contour) > 1:
+        tangent_second = libs.calculate_tangent(helix_intersecting_points_2d_translated_contour, 1)
         angle_second = libs.calculate_angle(-1 * tangent_second)
     else:
         angle_second = None
 
     # 倒数第二个点的切线与垂直向下方向的夹角
-    if len(helix_intersecting_points_2d_translated) > 1:
-        tangent_penultimate = libs.calculate_tangent(helix_intersecting_points_2d_translated, len(helix_intersecting_points_2d_translated) - 2)
+    if len(helix_intersecting_points_2d_translated_contour) > 1:
+        tangent_penultimate = libs.calculate_tangent(helix_intersecting_points_2d_translated_contour, len(helix_intersecting_points_2d_translated_contour) - 2)
         angle_penultimate = libs.calculate_angle(tangent_penultimate)
     else:
         angle_penultimate = None
 
     # 获取第一个点和最后一个点的坐标
-    first_point = helix_intersecting_points_2d_translated[0]
-    last_point = helix_intersecting_points_2d_translated[-1]
+    first_point = helix_intersecting_points_2d_translated_contour[0]
+    last_point = helix_intersecting_points_2d_translated_contour[-1]
 
     # ********************************
 
     # 拆分成两个数组
-    right_points = helix_intersecting_points_2d_translated[helix_intersecting_points_2d_translated[:, 0] < 0]
-    left_points = helix_intersecting_points_2d_translated[helix_intersecting_points_2d_translated[:, 0] >= 0]
+    right_points = helix_intersecting_points_2d_translated_contour[helix_intersecting_points_2d_translated_contour[:, 0] < 0]
+    left_points = helix_intersecting_points_2d_translated_contour[helix_intersecting_points_2d_translated_contour[:, 0] >= 0]
 
     # x 坐标小于0的点反向排序
     right_points = right_points[::-1]
@@ -448,6 +469,8 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         ax4 = fig.add_subplot(144)
         ax4.plot(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], label='优化后的干涉轨迹曲线', linewidth=0.5)
         ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='优化后的干涉轨迹点')
+        ax4.plot(helix_intersecting_points_2d_translated_contour[:, 0], helix_intersecting_points_2d_translated_contour[:, 1], label='滚轮修整轮廓线', linewidth=0.5)
+        ax4.scatter(helix_intersecting_points_2d_translated_contour[:, 0], helix_intersecting_points_2d_translated_contour[:, 1], color='blue', s=1, label='滚轮修整轮廓点')
         ax4.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
         ax4.set_aspect('equal')
         ax4.set_title('最终干涉轨迹', pad=20)
@@ -461,7 +484,9 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
                         f"砂轮杆据中心偏移：{gan_distance:.4f}\n" \
                         f"砂轮直径：{wheel_dia:.4f}\n" \
                         f"砂轮齿高：{height_difference:.4f}\n" \
-                        f"砂轮齿宽：{width_max:.4f}"
+                        f"砂轮齿宽：{width_max:.4f}\n" \
+                        f"修整齿高：{height_difference_contour:.4f}\n" \
+                        f"修整齿宽：{width_max_contour:.4f}"
         fig.text(0.1, 0.95, multiline_text, fontsize=12, color='#000000', ha='left', va='top', wrap=True)
 
         plt.show(block=False) # 显示图表但不会阻塞程序的执行

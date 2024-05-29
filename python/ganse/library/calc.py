@@ -4,6 +4,7 @@ from scipy.interpolate import make_interp_spline
 import sys
 import numba
 import matplotlib.pyplot as plt
+from scipy.interpolate import UnivariateSpline
 
 # 定义一个函数，从 DXF 文件中加载曲线，并仅保留 XY 坐标，同时应用偏移和等距离散化
 def load_dxf_curve(filename, offset=np.array([0, 30]), segment_length=0.01):
@@ -303,12 +304,24 @@ def rotate_to_xy_plane(points):
         projected_points.append(projected_point)
     return np.array(projected_points)
 
-# 将所有点等距处理 最高点设置为 0,0
-def redistribute_points_equally(points, num_points):
-    # 找到 Y 轴最高的点，并将其坐标设为 (0,0)
+# 将所有点等距处理，最高点设置为指定的原点位置
+def redistribute_points_equally(points, num_points, origin=np.array([0, 0])):
+    """
+    将所有点等距处理，最高点设置为指定的原点位置。
+
+    参数:
+    points -- 二维数组，形状为 (n, 2)，其中 n 是点的数量
+    num_points -- 需要生成的等距点的数量
+    origin -- 新的原点位置，默认值为 (0, 0)
+
+    返回:
+    等距处理后的二维数组
+    """
+    # 找到 Y 轴最高的点，并将其坐标设为 origin
     max_y_index = np.argmax(points[:, 1])
     max_y_point = points[max_y_index]
-    translated_points = points - max_y_point
+    translation = origin - max_y_point
+    translated_points = points + translation
 
     # 计算每个点到最高点的累积距离
     distances = np.sqrt(np.sum(np.diff(translated_points, axis=0)**2, axis=1))
@@ -347,6 +360,47 @@ def calculate_tangent(points, index, window=3):
     tangent = np.array([1, coeffs[0]])  # [dx, dy]
     tangent /= np.linalg.norm(tangent)  # 归一化
     return tangent
+
+# 生成沿着y轴正向的轮廓线离散点
+def generate_contour_points(points, contour_distance=0.1, point_spacing=0.01):
+    """
+    生成沿着曲线法线方向的轮廓线离散点，起点和终点的y坐标与原始点相等，
+    添加的两个点在x方向也与原始起点和终点距离轮廓距离。
+
+    参数:
+    points -- 二维数组，形状为 (n, 2)，其中 n 是点的数量
+    contour_distance -- 轮廓线的偏移距离
+    point_spacing -- 离散点的间距
+
+    返回:
+    轮廓线的离散点的二维数组
+    """
+    x = points[:, 0]
+    y = points[:, 1]
+    
+    # 拟合一条平滑曲线
+    spline = UnivariateSpline(x, y, s=0)
+    
+    # 生成等距点的参数
+    total_length = np.max(x) - np.min(x)
+    num_points = int(total_length / point_spacing)
+    x_new = np.linspace(np.min(x), np.max(x), num_points)
+    y_new = spline(x_new)
+    
+    # 计算法线方向的轮廓点
+    dx = np.gradient(x_new)
+    dy = np.gradient(y_new)
+    normals = np.array([-dy, dx]).T  # 法线方向向量
+    normals = normals / np.linalg.norm(normals, axis=1)[:, np.newaxis]  # 归一化
+    
+    contour_points = np.vstack((x_new, y_new)).T + contour_distance * normals
+
+    # 添加起点和终点
+    start_point = np.array([points[0, 0] - contour_distance, points[0, 1]])
+    end_point = np.array([points[-1, 0] + contour_distance, points[-1, 1]])
+    contour_points = np.vstack([start_point, contour_points, end_point])
+    
+    return contour_points
 
 # 计算切线与垂直方向的夹角
 def calculate_angle(tangent, vertical=np.array([0, -1])):
