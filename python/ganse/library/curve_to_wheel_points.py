@@ -236,9 +236,9 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
 
     # ********************************
 
-    # 找到 y 轴最大点作为基准原点
-    max_y_index = np.argmax(helix_intersecting_points_2d_smoothed[:, 1])
-    reference_origin = helix_intersecting_points_2d_smoothed[max_y_index]
+    # 找到 x 轴坐标最接近 0 的一点
+    x_zero_index = libs.find_closest_point_to_zero(helix_intersecting_points_2d_smoothed)
+    reference_origin = helix_intersecting_points_2d_smoothed[x_zero_index]
 
     # 平移所有点到新坐标系
     helix_intersecting_points_2d_translated = helix_intersecting_points_2d_smoothed - reference_origin - dresser_r

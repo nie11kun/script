@@ -249,6 +249,25 @@ def remove_duplicate_x(points):
     _, unique_indices = np.unique(points[:, 0], return_index=True)
     return points[unique_indices]
 
+# 找到二维数组中 x 坐标最接近 0 的点的索引
+def find_closest_point_to_zero(points):
+    """
+    找到二维数组中 x 坐标最接近 0 的点的索引
+
+    参数:
+    points (numpy.ndarray): 一个包含二维点的数组，每个点表示为 [x, y]
+
+    返回:
+    int: x 坐标最接近 0 的点的索引
+    """
+    # 提取 x 坐标
+    x_coords = points[:, 0]
+
+    # 找到 x 坐标绝对值最小的点的索引
+    closest_index = np.argmin(np.abs(x_coords))
+
+    return closest_index
+
 # 生成平滑曲线上的点
 def smooth_curve(points, distance):
     try:
