@@ -1,8 +1,6 @@
-from library.curve_to_wheel_points import curve_to_wheel_points
-from library.calc import remove_leading_whitespace, parse_coordinates, plot_coordinates, read_file
-from decimal import Decimal
-import numpy as np
-import matplotlib.pyplot as plt
+from library.main_cycle import main_cycle
+import tkinter as tk
+from tkinter import messagebox
 
 # 砂轮杆偏移工件中心最大距离
 gan_distance_max = 22
@@ -28,85 +26,85 @@ dresser_r = 1.0
 # 最终曲线点密度
 shape_num = 600
 
-# dxf
+# dxf 文件地址
 dxf_file = 'dxf/19.05.dxf'
 # ****************************
 
-# 齿型程序个数
-dia_num = int((Decimal(f'{gan_distance_max}') - Decimal(f'{gan_distance_min}')) / Decimal(f'{step_dia / 2}'))
+def on_submit():
 
-size = 100
-wheel_dia = [i for i in range(size)]
-wheel_dia_str = [i for i in range(size)]
-file_content = [i for i in range(size)]
-point_string = [i for i in range(size)]
+    try:
+        gan_distance_max = float(entry_gan_distance_max.get())
+        gan_distance_min = float(entry_gan_distance_min.get())
+        step_dia = float(entry_step_dia.get())
+        gan_angle = float(entry_gan_angle.get())
+        mid_dia = float(entry_mid_dia.get())
+        work_lead = float(entry_work_lead.get())
+        dresser_r = float(entry_dresser_r.get())
+        shape_num = int(entry_shape_num.get())
+        dxf_file = str(entry_dxf_file.get())
 
-for i in range(dia_num+1):
-    if i == 0:
-        is_plot = True
-    else:
-        if i == dia_num:
-            is_plot = True
-        else:
-            is_plot = False
-    
-    wheel_dia[i], file_content[i], point_string[i] = curve_to_wheel_points(dxf_file=dxf_file, gan_distance=gan_distance_min+step_dia/2*i, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead, dresser_r=dresser_r, shape_num=shape_num ,if_plot=is_plot)
+        main_cycle(gan_distance_max, gan_distance_min, step_dia, gan_angle, mid_dia, work_lead, dresser_r, shape_num, dxf_file)
+    except ValueError:
+        messagebox.showerror("输入错误", "请输入有效的整数")
 
-    # 将直径转换为4位小数的字符串 并替换小数点为下划线
-    wheel_dia_str[i] = f"{wheel_dia[i]:.4f}".replace('.', '_')
+# 创建主窗口
+root = tk.Tk()
+root.title("参数输入界面")
 
-head_content = f"""
-;砂轮直径范围:{wheel_dia[0]:.4f} - {wheel_dia[dia_num]:.4f}
-;砂轮杆安装角:{gan_angle}
-;工件螺旋升角:{np.rad2deg(np.arctan2(work_lead, np.pi * mid_dia)):.4f}
-;工件中径:{mid_dia}
-;工件导程:{work_lead}
-;滚轮圆弧半径:{dresser_r}
-;********************************
-DEF REAL VER_MODE,WHEEL_DIA
-DEF AXIS AX_HORI,AX_VER
-AX_HORI=AXNAME(AXIS_HORI)
-AX_VER=AXNAME(AXIS_VER)
-VER_MODE=DRESSER[50]
-WHEEL_DIA=DRESSER[24]
-;********************************
+# 创建标签和输入框
+label_gan_distance_max = tk.Label(root, text="砂轮杆偏移工件中心最大距离:")
+label_gan_distance_max.grid(row=0, column=0)
+entry_gan_distance_max = tk.Entry(root)
+entry_gan_distance_max.grid(row=0, column=1)
 
-IF (WHEEL_DIA>={wheel_dia[0]:.4f}) GOTOF DIA_{wheel_dia_str[0]};
-"""
+label_gan_distance_min = tk.Label(root, text="砂轮杆偏移工件中心最小距离:")
+label_gan_distance_min.grid(row=1, column=0)
+entry_gan_distance_min = tk.Entry(root)
+entry_gan_distance_min.grid(row=1, column=1)
 
-for i in range(1,dia_num+1):
-    head_content += f'IF (WHEEL_DIA<{wheel_dia[i-1]:.4f}) AND (WHEEL_DIA>={wheel_dia[i]:.4f}) GOTOF DIA_{wheel_dia_str[i]};\n'
+label_step_dia = tk.Label(root, text="砂轮直径步进:")
+label_step_dia.grid(row=2, column=0)
+entry_step_dia = tk.Entry(root)
+entry_step_dia.grid(row=2, column=1)
 
-head_content += f"""
-IF (WHEEL_DIA<{wheel_dia[dia_num]:.4f}) GOTOF DIA_{wheel_dia_str[dia_num]};
-"""
+label_gan_angle = tk.Label(root, text="砂轮安装角:")
+label_gan_angle.grid(row=3, column=0)
+entry_gan_angle = tk.Entry(root)
+entry_gan_angle.grid(row=3, column=1)
 
-file_name = f"GS_{mid_dia}_{work_lead}".replace('.', '_') + '.SPF'
+label_mid_dia = tk.Label(root, text="工件中径:")
+label_mid_dia.grid(row=4, column=0)
+entry_mid_dia = tk.Entry(root)
+entry_mid_dia.grid(row=4, column=1)
 
-# 将内容写入文件
-with open(file_name, "w", encoding="utf-8") as f:
-    f.write(head_content)
+label_work_lead = tk.Label(root, text="导程:")
+label_work_lead.grid(row=5, column=0)
+entry_work_lead = tk.Entry(root)
+entry_work_lead.grid(row=5, column=1)
 
-for i in range(dia_num+1):
-    # 将内容写入文件
-    with open(file_name, "a", encoding="utf-8") as f:
-        f.write(file_content[i])
+label_dresser_r = tk.Label(root, text="滚轮圆弧半径:")
+label_dresser_r.grid(row=6, column=0)
+entry_dresser_r = tk.Entry(root)
+entry_dresser_r.grid(row=6, column=1)
 
-# 删除文本中的缩进
-remove_leading_whitespace(file_name,file_name)
+label_shape_num = tk.Label(root, text="最终曲线点密度:")
+label_shape_num.grid(row=7, column=0)
+entry_shape_num = tk.Entry(root)
+entry_shape_num.grid(row=7, column=1)
 
-# 比较文件路径
-# file1_path = 'file1.txt'
+label_dxf_file = tk.Label(root, text="dxf 文件地址:")
+label_dxf_file.grid(row=8, column=0)
+entry_dxf_file = tk.Entry(root)
+entry_dxf_file.grid(row=8, column=1)
 
-# 读取文件内容
-# str1 = read_file(file1_path)
+# 创建提交按钮
+submit_button = tk.Button(root, text="提交", command=on_submit)
+submit_button.grid(row=9, columnspan=2)
 
-if dia_num >= 1:
-    # 解析坐标
-    points1 = parse_coordinates(point_string[0])
-    points2 = parse_coordinates(point_string[1])
+# 显示结果的标签
+result = tk.StringVar()
+result_label = tk.Label(root, textvariable=result)
+result_label.grid(row=10, columnspan=2)
 
-    # 绘制坐标
-    plot_coordinates(points1, points2)
-
-plt.show()
+# 运行主循环
+root.mainloop()
