@@ -4,7 +4,7 @@ import sys
 import platform
 import library.calc as libs
 
-def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead, dresser_r=0, if_plot=False):
+def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead, dresser_r=0, shape_num=500 ,if_plot=False):
     # 螺旋升角
     angle = np.rad2deg(np.arctan2(work_lead, np.pi * mid_dia))
     print(f'标准螺旋升角: {angle:.4f}')
@@ -256,7 +256,7 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     helix_intersecting_points_2d_translated_contour = libs.generate_contour_points(helix_intersecting_points_2d_translated, contour_distance=dresser_r, point_spacing=segment_length)
 
     # 处理 helix_intersecting_points_2d_translated_contour 使其等距
-    helix_intersecting_points_2d_translated_contour = libs.redistribute_points_equally(helix_intersecting_points_2d_translated_contour, num_curve_points)
+    helix_intersecting_points_2d_translated_contour = libs.redistribute_points_equally(helix_intersecting_points_2d_translated_contour, shape_num)
 
     # 如果 y坐标 有大于 0 的点 则修改其 y 为 0
     helix_intersecting_points_2d_translated_contour = libs.limit_y_coordinate(helix_intersecting_points_2d_translated_contour, 0)
@@ -298,14 +298,14 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
 
     # 最高点的前一个点的切线与垂直向下方向的夹角
     if max_y_index > 0:
-        tangent_before_max = libs.calculate_tangent(helix_intersecting_points_2d_translated_contour, max_y_index - 1)
+        tangent_before_max = libs.calculate_tangent(helix_intersecting_points_2d_translated_contour, max_y_index_contour - 1)
         angle_before_max = libs.calculate_angle(-1 * tangent_before_max)
     else:
         angle_before_max = None
 
     # 最高点的后一个点的切线与垂直向下方向的夹角
     if max_y_index < len(helix_intersecting_points_2d_translated_contour) - 1:
-        tangent_after_max = libs.calculate_tangent(helix_intersecting_points_2d_translated_contour, max_y_index + 1)
+        tangent_after_max = libs.calculate_tangent(helix_intersecting_points_2d_translated_contour, max_y_index_contour + 1)
         angle_after_max = libs.calculate_angle(tangent_after_max)
     else:
         angle_after_max = None

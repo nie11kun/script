@@ -25,6 +25,9 @@ work_lead = 50
 # 滚轮圆弧半径
 dresser_r = 1.0
 
+# 最终曲线点密度
+shape_num = 1000
+
 # dxf
 dxf_file = 'dxf/19.05.dxf'
 # ****************************
@@ -47,7 +50,7 @@ for i in range(dia_num+1):
         else:
             is_plot = False
     
-    wheel_dia[i], file_content[i], point_string[i] = curve_to_wheel_points(dxf_file=dxf_file, gan_distance=gan_distance_min+step_dia/2*i, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead, dresser_r=dresser_r, if_plot=is_plot)
+    wheel_dia[i], file_content[i], point_string[i] = curve_to_wheel_points(dxf_file=dxf_file, gan_distance=gan_distance_min+step_dia/2*i, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead, dresser_r=dresser_r, shape_num=shape_num ,if_plot=is_plot)
 
     # 将直径转换为4位小数的字符串 并替换小数点为下划线
     wheel_dia_str[i] = f"{wheel_dia[i]:.4f}".replace('.', '_')
