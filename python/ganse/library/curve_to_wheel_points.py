@@ -88,8 +88,9 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
     # ********************************
 
     # 计算螺旋曲面上每条曲线上的点的法线是否与新坐标系上的直线相交
-    helix_intersecting_points_right = libs.find_intersecting_points(helix_surface_points_right, helix_surface_normals_right, line_point, line_direction, min_distance, break_num=num_curve_points * 1000)
-    helix_intersecting_points_left = libs.find_intersecting_points(helix_surface_points_left, helix_surface_normals_left, line_point, line_direction, min_distance, break_num=num_curve_points * 1000)
+    # 5度范围都没找到相交点则不继续找
+    helix_intersecting_points_right = libs.find_intersecting_points(helix_surface_points_right, helix_surface_normals_right, line_point, line_direction, min_distance, break_num=num_curve_points * 500)
+    helix_intersecting_points_left = libs.find_intersecting_points(helix_surface_points_left, helix_surface_normals_left, line_point, line_direction, min_distance, break_num=num_curve_points * 500)
 
     # 将 helix_intersecting_points 转换到新坐标系中
     helix_intersecting_points_translated_right = helix_intersecting_points_right - new_origin

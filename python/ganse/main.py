@@ -26,7 +26,7 @@ work_lead = 50
 dresser_r = 1.0
 
 # 最终曲线点密度
-shape_num = 1000
+shape_num = 600
 
 # dxf
 dxf_file = 'dxf/19.05.dxf'
