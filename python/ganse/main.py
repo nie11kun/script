@@ -7,7 +7,7 @@ import numpy as np
 gan_distance_max = 20
 
 # 砂轮杆偏移工件中心最小距离
-gan_distance_min = 18
+gan_distance_min = 20
 
 # 砂轮直径步进
 step_dia = 1
@@ -52,7 +52,7 @@ for i in range(dia_num+1):
     wheel_dia_str[i] = f"{wheel_dia[i]:.4f}".replace('.', '_')
 
 head_content = f"""
-;砂轮直径范围:{wheel_dia[0]:.4f} - {wheel_dia[-1]:.4f}
+;砂轮直径范围:{wheel_dia[0]:.4f} - {wheel_dia[dia_num]:.4f}
 ;砂轮杆安装角:{gan_angle}
 ;工件螺旋升角:{np.rad2deg(np.arctan2(work_lead, np.pi * mid_dia)):.4f}
 ;工件中径:{mid_dia}
@@ -99,9 +99,10 @@ remove_leading_whitespace(file_name,file_name)
 # 读取文件内容
 # str1 = read_file(file1_path)
 
-# 解析坐标
-points1 = parse_coordinates(point_string[0])
-points2 = parse_coordinates(point_string[1])
+if dia_num >= 1:
+    # 解析坐标
+    points1 = parse_coordinates(point_string[0])
+    points2 = parse_coordinates(point_string[1])
 
-# 绘制坐标
-plot_coordinates(points1, points2)
+    # 绘制坐标
+    plot_coordinates(points1, points2)
