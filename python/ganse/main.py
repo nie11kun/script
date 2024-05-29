@@ -5,10 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 砂轮杆偏移工件中心最大距离
-gan_distance_max = 20
+gan_distance_max = 22
 
 # 砂轮杆偏移工件中心最小距离
-gan_distance_min = 20
+gan_distance_min = 21
 
 # 砂轮直径步进
 step_dia = 1
@@ -76,8 +76,6 @@ for i in range(1,dia_num+1):
 
 head_content += f"""
 IF (WHEEL_DIA<{wheel_dia[dia_num]:.4f}) GOTOF DIA_{wheel_dia_str[dia_num]};
-
-;********************************
 """
 
 file_name = f"GS_{mid_dia}_{work_lead}".replace('.', '_') + '.SPF'
