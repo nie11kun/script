@@ -444,6 +444,17 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
                                       y=sampled_helix_intersecting_points_left[:, 1], 
                                       z=sampled_helix_intersecting_points_left[:, 2], 
                                       mode='markers', marker=dict(color='#d6c400', size=3), name='左侧砂轮接触点'))
+        
+        fig_3d.update_layout(
+            scene=dict(
+                aspectmode='cube',
+                aspectratio=dict(x=1, y=1, z=1),
+                xaxis=dict(title='X', nticks=10),
+                yaxis=dict(title='Y', nticks=10),
+                zaxis=dict(title='Z', nticks=10)
+            ),
+            title='3D 螺旋曲面与接触点'
+        )
 
         if delete_index_right is not None:
             fig_3d.add_trace(go.Scatter3d(x=anomalous_points_right[:, 0], y=anomalous_points_right[:, 1], z=anomalous_points_right[:, 2], 
