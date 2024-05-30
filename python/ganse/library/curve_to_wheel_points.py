@@ -397,12 +397,20 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
             font_family = 'Heiti TC'
         else:
             font_family = 'Noto Sans CJK JP'
+        
         # 创建第一个子图
         fig = go.Figure()
 
         # 标准齿形轨迹点
         fig.add_trace(go.Scatter(x=curve_points[:, 0], y=curve_points[:, 1], mode='markers', 
                                 marker=dict(color='blue', size=5), name='标准齿形轨迹点'))
+        
+        # 统一比例尺
+        fig.update_layout(
+            xaxis=dict(scaleanchor="y", scaleratio=1),
+            yaxis=dict(scaleanchor="x", scaleratio=1),
+            title='标准齿形轨迹点'
+        )
 
         # 创建第二个子图（3D），使用采样来减少点的数量
         def sample_data(data, sample_rate):
@@ -480,6 +488,12 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
             fig_2d.add_trace(go.Scatter(x=[original_points_abnormal_left[0, 0]], y=[original_points_abnormal_left[0, 1]], 
                                         mode='markers+text', text=[f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}'], 
                                         marker=dict(color='#d406a4', size=8), name='左侧第一个异常点'))
+        
+        fig_2d.update_layout(
+            xaxis=dict(scaleanchor="y", scaleratio=1),
+            yaxis=dict(scaleanchor="x", scaleratio=1),
+            title='原始轨迹与干涉轨迹对比'
+        )
 
         # 创建第四个子图
         fig_translated = go.Figure()
@@ -488,6 +502,12 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
                                             mode='markers', marker=dict(color='red', size=2), name='优化后的干涉轨迹点'))
         fig_translated.add_trace(go.Scatter(x=helix_intersecting_points_2d_translated_contour[:, 0], y=helix_intersecting_points_2d_translated_contour[:, 1], 
                                             mode='markers', marker=dict(color='blue', size=2), name='滚轮修整轮廓点'))
+
+        fig_translated.update_layout(
+            xaxis=dict(scaleanchor="y", scaleratio=1),
+            yaxis=dict(scaleanchor="x", scaleratio=1),
+            title='最终干涉轨迹'
+        )
 
         # 保存图表到 HTML 文件
         fig.write_html(f"{save_path}/plot_curve_original.html")

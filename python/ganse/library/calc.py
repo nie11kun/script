@@ -486,6 +486,12 @@ def plot_coordinates(points1, points2, save_path):
     
     # 创建交互式散点图
     fig = px.scatter(data, x='X', y='Y', color='Set', title='相邻两个直径的轨迹点比较')
+
+    # 统一比例尺
+    fig.update_layout(
+        xaxis=dict(scaleanchor="y", scaleratio=1),
+        yaxis=dict(scaleanchor="x", scaleratio=1)
+    )
     
     # 将图表保存为 HTML 文件
     fig.write_html(f"{save_path}/plot_compare_two_curve.html")
