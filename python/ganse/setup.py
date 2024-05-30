@@ -35,8 +35,8 @@ executables = [
     Executable(
         "main.py",  # 你的主脚本文件
         base=base,
-        target_name="InterferenceGrindingDressing.exe",  # 生成的可执行文件名
-        icon="icon.ico",  # 可选：程序图标文件
+        target_name="InterferenceGrindingDressing.app" if sys.platform == "darwin" else "InterferenceGrindingDressing.exe",
+        icon="icon.icns" if sys.platform == "darwin" else "icon.ico",  # 图标文件
     )
 ]
 
