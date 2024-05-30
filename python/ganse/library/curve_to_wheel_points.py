@@ -1,10 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import sys
 import platform
 import library.calc as libs
+import plotly.graph_objs as go
 
-def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead, dresser_r=0, shape_num=500, if_plot=False):
+def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead, dresser_r=0, shape_num=500, if_plot=False, save_path=''):
     # 螺旋升角
     angle = np.rad2deg(np.arctan2(work_lead, np.pi * mid_dia))
     print(f'标准螺旋升角: {angle:.4f}')
@@ -388,122 +388,111 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
 
     # ********************************
 
-    if if_plot is True:
+    if if_plot:
         # 设置中文字体
-
-        # 检测操作系统
         current_os = platform.system()
-
-        # 根据操作系统设置字体
         if current_os == 'Windows':
-            plt.rcParams['font.family'] = 'SimHei'
+            font_family = 'SimHei'
         elif current_os == 'Darwin':  # macOS
-            plt.rcParams['font.family'] = 'Heiti TC'
+            font_family = 'Heiti TC'
         else:
-            plt.rcParams['font.family'] = 'Noto Sans CJK JP'
+            font_family = 'Noto Sans CJK JP'
+        # 创建第一个子图
+        fig = go.Figure()
 
-        plt.rcParams['axes.unicode_minus'] = False  # 解决保存图像时负号 '-' 显示为方块的问题
+        # 标准齿形轨迹点
+        fig.add_trace(go.Scatter(x=curve_points[:, 0], y=curve_points[:, 1], mode='markers', 
+                                marker=dict(color='blue', size=5), name='标准齿形轨迹点'))
 
-        # 绘制结果
-        fig = plt.figure(figsize=(28, 7))  # 调整fig大小以包含4张图
+        # 创建第二个子图（3D），使用采样来减少点的数量
+        def sample_data(data, sample_rate):
+            num_points = data.shape[0]
+            sample_size = max(1, int(num_points * sample_rate))
+            sampled_indices = np.random.choice(num_points, size=sample_size, replace=False)
+            return data[sampled_indices]
 
-        # 绘制原始曲线，不显示法线
-        ax1 = fig.add_subplot(141)
-        ax1.scatter(curve_points[:, 0], curve_points[:, 1], color='blue', s=10, label='标准齿形轨迹点')
-        # 屏蔽法线显示
-        # ax1.quiver(curve_points[:, 0], curve_points[:, 1], normals[:, 0], normals[:, 1], color='red', scale=20, label='Normals')
-        ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fontsize=10)  # 调整图例位置
-        ax1.set_aspect('equal')
-        ax1.set_title('标准齿形', pad=20, fontsize=14)  # 调整标题位置和字体大小
-        ax1.set_xlabel('X', fontsize=12)
-        ax1.set_ylabel('Y', fontsize=12)
-        ax1.grid(True)  # 添加网格
+        sample_rate = 0.005  # 采样率
 
-        # 绘制旋转后的曲线和法线，以及螺旋曲面上的点
-        ax2 = fig.add_subplot(142, projection='3d')
-        ax2.plot(helix_surface_points_right[:, 0], helix_surface_points_right[:, 1], helix_surface_points_right[:, 2], label='右侧螺旋曲面')
-        ax2.plot(helix_surface_points_left[:, 0], helix_surface_points_left[:, 1], helix_surface_points_left[:, 2], label='左侧螺旋曲面')
-        ax2.scatter(helix_intersecting_points_right[:, 0], helix_intersecting_points_right[:, 1], helix_intersecting_points_right[:, 2], color='#93cd00', s=10, label='右侧砂轮接触点')
-        ax2.scatter(helix_intersecting_points_left[:, 0], helix_intersecting_points_left[:, 1], helix_intersecting_points_left[:, 2], color='#d6c400', s=10, label='左侧砂轮接触点')
+        sampled_helix_surface_points_right = sample_data(helix_surface_points_right, sample_rate)
+        sampled_helix_surface_points_left = sample_data(helix_surface_points_left, sample_rate)
+        sampled_helix_intersecting_points_right = sample_data(helix_intersecting_points_right, 1)
+        sampled_helix_intersecting_points_left = sample_data(helix_intersecting_points_left, 1)
 
-        # 标注异常点及后续所有点在曲面中的位置
+        fig_3d = go.Figure()
+
+        fig_3d.add_trace(go.Scatter3d(x=sampled_helix_surface_points_right[:, 0], 
+                                      y=sampled_helix_surface_points_right[:, 1], 
+                                      z=sampled_helix_surface_points_right[:, 2], 
+                                      mode='lines', name='右侧螺旋曲面'))
+        fig_3d.add_trace(go.Scatter3d(x=sampled_helix_surface_points_left[:, 0], 
+                                      y=sampled_helix_surface_points_left[:, 1], 
+                                      z=sampled_helix_surface_points_left[:, 2], 
+                                      mode='lines', name='左侧螺旋曲面'))
+        fig_3d.add_trace(go.Scatter3d(x=sampled_helix_intersecting_points_right[:, 0], 
+                                      y=sampled_helix_intersecting_points_right[:, 1], 
+                                      z=sampled_helix_intersecting_points_right[:, 2], 
+                                      mode='markers', marker=dict(color='#93cd00', size=3), name='右侧砂轮接触点'))
+        fig_3d.add_trace(go.Scatter3d(x=sampled_helix_intersecting_points_left[:, 0], 
+                                      y=sampled_helix_intersecting_points_left[:, 1], 
+                                      z=sampled_helix_intersecting_points_left[:, 2], 
+                                      mode='markers', marker=dict(color='#d6c400', size=3), name='左侧砂轮接触点'))
+
         if delete_index_right is not None:
-            ax2.scatter(anomalous_points_right[:, 0], anomalous_points_right[:, 1], anomalous_points_right[:, 2], color='#cd0000', s=12, label='右侧异常接触点')
+            fig_3d.add_trace(go.Scatter3d(x=anomalous_points_right[:, 0], y=anomalous_points_right[:, 1], z=anomalous_points_right[:, 2], 
+                                          mode='markers', marker=dict(color='#cd0000', size=4), name='右侧异常接触点'))
         if delete_index_left is not None:
-            ax2.scatter(anomalous_points_left[:, 0], anomalous_points_left[:, 1], anomalous_points_left[:, 2], color='#cd6700', s=12, label='左侧异常接触点')
+            fig_3d.add_trace(go.Scatter3d(x=anomalous_points_left[:, 0], y=anomalous_points_left[:, 1], z=anomalous_points_left[:, 2], 
+                                          mode='markers', marker=dict(color='#cd6700', size=4), name='左侧异常接触点'))
 
-        ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fontsize=10)  # 调整图例位置
-        ax2.set_title('滚道加工面', pad=20, fontsize=14)  # 调整标题位置和字体大小
-        ax2.set_xlabel('X', fontsize=12)
-        ax2.set_ylabel('Y', fontsize=12)
-        ax2.set_zlabel('Z', fontsize=12)
-        ax2.quiver(new_origin[0], new_origin[1], new_origin[2], u[0], u[1], u[2], length=5, color='r', label='New X-axis')
-        ax2.quiver(new_origin[0], new_origin[1], new_origin[2], v[0], v[1], v[2], length=5, color='g', label='New Y-axis')
-        ax2.quiver(new_origin[0], new_origin[1], new_origin[2], w[0], w[1], w[2], length=5, color='b', label='New Z-axis')
+        # 创建第三个子图
+        fig_2d = go.Figure()
 
-        # 设置 ax2 的坐标比例
-        ax2.set_box_aspect([1, 1, 1])  # 设置为等比例
-
-        # 绘制螺旋曲面相交点旋转到新坐标系二维平面
-        ax3 = fig.add_subplot(143)
-        # ax3.plot(fixed_curve_points[:, 0], fixed_curve_points[:, 1], label='标准齿形轨迹', linewidth=0.5)
-        ax3.scatter(fixed_curve_points[:, 0], fixed_curve_points[:, 1], color='blue', s=0.1, label='标准齿形轨迹点')
+        fig_2d.add_trace(go.Scatter(x=fixed_curve_points[:, 0], y=fixed_curve_points[:, 1], 
+                                    mode='markers', marker=dict(color='blue', size=2), name='标准齿形轨迹点'))
         if len(helix_intersecting_points_2d_smoothed) > 0:
-            # ax3.plot(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], label='干涉砂轮齿形轨迹', linewidth=0.5)
-            ax3.scatter(helix_intersecting_points_2d_smoothed[:, 0], helix_intersecting_points_2d_smoothed[:, 1], color='red', s=0.1, label='干涉砂轮齿形轨迹点')
+            fig_2d.add_trace(go.Scatter(x=helix_intersecting_points_2d_smoothed[:, 0], y=helix_intersecting_points_2d_smoothed[:, 1], 
+                                        mode='markers', marker=dict(color='red', size=2), name='干涉砂轮齿形轨迹点'))
 
-        # 标注 x 坐标小于上一个点的点
         if len(anomalies_smoothed) > 0:
-            ax3.scatter(anomalies_smoothed[:, 0], anomalies_smoothed[:, 1], color='#1ae621', s=10, label='齿底异常点')
-
-        # 标注 左右侧曲线上有交叉的点
+            fig_2d.add_trace(go.Scatter(x=anomalies_smoothed[:, 0], y=anomalies_smoothed[:, 1], 
+                                        mode='markers', marker=dict(color='#1ae621', size=6), name='齿底异常点'))
         if len(helix_intersecting_points_2d_over_right) > 0:
-            ax3.scatter(helix_intersecting_points_2d_over_right[:, 0], helix_intersecting_points_2d_over_right[:, 1], color='#1f5793', s=10, label='右侧齿顶异常点')
+            fig_2d.add_trace(go.Scatter(x=helix_intersecting_points_2d_over_right[:, 0], y=helix_intersecting_points_2d_over_right[:, 1], 
+                                        mode='markers', marker=dict(color='#1f5793', size=6), name='右侧齿顶异常点'))
         if len(helix_intersecting_points_2d_over_left) > 0:
-            ax3.scatter(helix_intersecting_points_2d_over_left[:, 0], helix_intersecting_points_2d_over_left[:, 1], color='#2cb5ff', s=10, label='左侧齿顶异常点')
+            fig_2d.add_trace(go.Scatter(x=helix_intersecting_points_2d_over_left[:, 0], y=helix_intersecting_points_2d_over_left[:, 1], 
+                                        mode='markers', marker=dict(color='#2cb5ff', size=6), name='左侧齿顶异常点'))
 
-        # 标注 helix_intersecting_points[delete_index] 的原点位置和来源
         if delete_index_right is not None:
-            ax3.scatter(original_points_abnormal_right[:, 0], original_points_abnormal_right[:, 1], color='green', s=5, label=f'异常点在原始轨道的右侧位置 (螺旋圈数: {turn_index_right}, 点位号: {original_point_index_right - len(fixed_curve_points_right)})')
+            fig_2d.add_trace(go.Scatter(x=original_points_abnormal_right[:, 0], y=original_points_abnormal_right[:, 1], 
+                                        mode='markers', marker=dict(color='green', size=4), 
+                                        name=f'异常点在原始轨道的右侧位置 (螺旋圈数: {turn_index_right}, 点位号: {original_point_index_right - len(fixed_curve_points_right)})'))
         if delete_index_left is not None:
-            ax3.scatter(original_points_abnormal_left[:, 0], original_points_abnormal_left[:, 1], color='green', s=5, label=f'异常点在原始轨道的左侧位置 (螺旋圈数: {turn_index_left}, 点位号: {original_point_index_left})')
+            fig_2d.add_trace(go.Scatter(x=original_points_abnormal_left[:, 0], y=original_points_abnormal_left[:, 1], 
+                                        mode='markers', marker=dict(color='green', size=4), 
+                                        name=f'异常点在原始轨道的左侧位置 (螺旋圈数: {turn_index_left}, 点位号: {original_point_index_left})'))
 
-        # 标注原始曲线中第一个不符合条件的点的切线斜率
         if tangent_anomalies_index_right is not None:
-            ax3.quiver(original_points_abnormal_right[0, 0], original_points_abnormal_right[0, 1], tangent_anomalies_index_right[0], tangent_anomalies_index_right[1], color='#e80505', scale=7, label=f'右侧第一个异常点的切线斜率: {anomalies_ang_right:.4f}')
+            fig_2d.add_trace(go.Scatter(x=[original_points_abnormal_right[0, 0]], y=[original_points_abnormal_right[0, 1]], 
+                                        mode='markers+text', text=[f'右侧第一个异常点的切线斜率: {anomalies_ang_right:.4f}'], 
+                                        marker=dict(color='#e80505', size=8), name='右侧第一个异常点'))
         if tangent_anomalies_index_left is not None:
-            ax3.quiver(original_points_abnormal_left[0, 0], original_points_abnormal_left[0, 1], tangent_anomalies_index_left[0], tangent_anomalies_index_left[1], color='#d406a4', scale=7, label=f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}')
+            fig_2d.add_trace(go.Scatter(x=[original_points_abnormal_left[0, 0]], y=[original_points_abnormal_left[0, 1]], 
+                                        mode='markers+text', text=[f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}'], 
+                                        marker=dict(color='#d406a4', size=8), name='左侧第一个异常点'))
 
-        ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fontsize=10)  # 调整图例位置
-        ax3.set_aspect('equal')
-        ax3.set_title('原始轨迹与干涉轨迹对比', fontsize=14)  # 调整标题位置和字体大小
-        ax3.set_xlabel('X', fontsize=12)
-        ax3.set_ylabel('Y', fontsize=12)
-        ax3.grid(True)  # 添加网格
+        # 创建第四个子图
+        fig_translated = go.Figure()
 
-        # 绘制平移后的点到第4张图
-        ax4 = fig.add_subplot(144)
-        ax4.plot(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], label='优化后的干涉轨迹曲线', linewidth=0.5)
-        ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='优化后的干涉轨迹点')
-        ax4.plot(helix_intersecting_points_2d_translated_contour[:, 0], helix_intersecting_points_2d_translated_contour[:, 1], label='滚轮修整轮廓线', linewidth=0.5)
-        ax4.scatter(helix_intersecting_points_2d_translated_contour[:, 0], helix_intersecting_points_2d_translated_contour[:, 1], color='blue', s=1, label='滚轮修整轮廓点')
-        ax4.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fontsize=10)  # 调整图例位置
-        ax4.set_aspect('equal')
-        ax4.set_title('最终干涉轨迹', pad=20, fontsize=14)  # 调整标题位置和字体大小
-        ax4.set_xlabel('X', fontsize=12)
-        ax4.set_ylabel('Y', fontsize=12)
-        ax4.grid(True)  # 添加网格
+        fig_translated.add_trace(go.Scatter(x=helix_intersecting_points_2d_translated[:, 0], y=helix_intersecting_points_2d_translated[:, 1], 
+                                            mode='markers', marker=dict(color='red', size=2), name='优化后的干涉轨迹点'))
+        fig_translated.add_trace(go.Scatter(x=helix_intersecting_points_2d_translated_contour[:, 0], y=helix_intersecting_points_2d_translated_contour[:, 1], 
+                                            mode='markers', marker=dict(color='blue', size=2), name='滚轮修整轮廓点'))
 
-        multiline_text = f"工件中径：{mid_dia:.4f}  工件导程：{work_lead:.4f}\n" \
-                        f"螺旋升角：{angle:.4f}  砂轮安装角：{gan_angle:.4f}\n" \
-                        f"砂轮杆据中心偏移：{gan_distance:.4f}\n" \
-                        f"砂轮直径：{wheel_dia:.4f}\n" \
-                        f"砂轮齿高：{height_difference:.4f}  砂轮齿宽：{width_max:.4f}\n" \
-                        f"修整齿高：{height_difference_contour:.4f}  修整齿宽：{width_max_contour:.4f}"
-        fig.text(0.1, 0.95, multiline_text, fontsize=12, color='#000000', ha='left', va='top', wrap=True)
-
-        plt.tight_layout(rect=[0, 0, 1, 0.95])  # 调整布局，使所有图表和文本都能显示在图像内
-        plt.show(block=False)  # 显示图表但不会阻塞程序的执行
-        plt.pause(10)  # 暂停以便图表渲染
+        # 保存图表到 HTML 文件
+        fig.write_html(f"{save_path}/plot_curve_original.html")
+        fig_3d.write_html(f"{save_path}/plot_helix_surface_intersecting_points.html")
+        fig_2d.write_html(f"{save_path}/plot_intersecting_points_compare_with_original.html")
+        fig_translated.write_html(f"{save_path}/plot_contour_curve.html")
 
     return wheel_dia, file_content, point_string

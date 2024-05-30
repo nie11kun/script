@@ -2,9 +2,14 @@ from library.curve_to_wheel_points import curve_to_wheel_points
 from library.calc import remove_leading_whitespace, parse_coordinates, plot_coordinates, read_file
 from decimal import Decimal
 import numpy as np
-import matplotlib.pyplot as plt
+import os
 
 def main_cycle(gan_distance_max, gan_distance_min, step_dia, gan_angle, mid_dia, work_lead, dresser_r, shape_num, dxf_file, save_path):
+
+    save_path = f"{save_path}/GS_{mid_dia}_{work_lead}".replace('.', '_')
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
     # 齿型程序个数
     dia_num = int((Decimal(f'{gan_distance_max}') - Decimal(f'{gan_distance_min}')) / Decimal(f'{step_dia / 2}'))
 
@@ -19,11 +24,11 @@ def main_cycle(gan_distance_max, gan_distance_min, step_dia, gan_angle, mid_dia,
             is_plot = True
         else:
             if i == dia_num:
-                is_plot = True
+                is_plot = False
             else:
                 is_plot = False
         
-        wheel_dia[i], file_content[i], point_string[i] = curve_to_wheel_points(dxf_file=dxf_file, gan_distance=gan_distance_min+step_dia/2*i, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead, dresser_r=dresser_r, shape_num=shape_num, if_plot=is_plot)
+        wheel_dia[i], file_content[i], point_string[i] = curve_to_wheel_points(dxf_file=dxf_file, gan_distance=gan_distance_min+step_dia/2*i, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead, dresser_r=dresser_r, shape_num=shape_num, if_plot=is_plot, save_path=save_path)
 
         # 将直径转换为4位小数的字符串 并替换小数点为下划线
         wheel_dia_str[i] = f"{wheel_dia[i]:.4f}".replace('.', '_')
@@ -80,6 +85,4 @@ def main_cycle(gan_distance_max, gan_distance_min, step_dia, gan_angle, mid_dia,
         points2 = parse_coordinates(point_string[1])
 
         # 绘制坐标
-        plot_coordinates(points1, points2)
-
-    plt.show()
+        plot_coordinates(points1, points2, save_path)

@@ -3,8 +3,9 @@ import ezdxf
 from scipy.interpolate import make_interp_spline
 import sys
 import numba
-import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
+import plotly.express as px
+import pandas as pd
 
 # 定义一个函数，从 DXF 文件中加载曲线，并仅保留 XY 坐标，同时应用偏移和等距离散化
 def load_dxf_curve(filename, offset=np.array([0, 30]), segment_length=0.01):
@@ -469,20 +470,22 @@ def parse_coordinates(s):
     return points
 
 # 绘制两个坐标点集合
-def plot_coordinates(points1, points2):
+def plot_coordinates(points1, points2, save_path):
     """
     绘制两个坐标点集合
     """
     points1 = np.array(points1)
     points2 = np.array(points2)
     
-    plt.figure()
-    plt.scatter(points1[:, 0], points1[:, 1], color='blue', s=1, label='Set 1')
-    plt.scatter(points2[:, 0], points2[:, 1], color='red', s=1, label='Set 2')
+    # 将数据转换为 DataFrame
+    data1 = pd.DataFrame(points1, columns=['X', 'Y'])
+    data1['Set'] = 'Set 1'
+    data2 = pd.DataFrame(points2, columns=['X', 'Y'])
+    data2['Set'] = 'Set 2'
+    data = pd.concat([data1, data2])
     
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.title('Plot of Coordinates')
-    plt.legend()
-    plt.show(block=False) # 显示图表但不会阻塞程序的执行
-    plt.pause(3)  # 暂停以便图表渲染
+    # 创建交互式散点图
+    fig = px.scatter(data, x='X', y='Y', color='Set', title='相邻两个直径的轨迹点比较')
+    
+    # 将图表保存为 HTML 文件
+    fig.write_html(f"{save_path}/plot_compare_two_curve.html")
