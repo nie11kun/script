@@ -4,7 +4,7 @@ from decimal import Decimal
 import numpy as np
 import matplotlib.pyplot as plt
 
-def main_cycle(gan_distance_max, gan_distance_min, step_dia, gan_angle, mid_dia, work_lead, dresser_r, shape_num, dxf_file):
+def main_cycle(gan_distance_max, gan_distance_min, step_dia, gan_angle, mid_dia, work_lead, dresser_r, shape_num, dxf_file, save_path):
     # 齿型程序个数
     dia_num = int((Decimal(f'{gan_distance_max}') - Decimal(f'{gan_distance_min}')) / Decimal(f'{step_dia / 2}'))
 
@@ -23,7 +23,7 @@ def main_cycle(gan_distance_max, gan_distance_min, step_dia, gan_angle, mid_dia,
             else:
                 is_plot = False
         
-        wheel_dia[i], file_content[i], point_string[i] = curve_to_wheel_points(dxf_file=dxf_file, gan_distance=gan_distance_min+step_dia/2*i, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead, dresser_r=dresser_r, shape_num=shape_num ,if_plot=is_plot)
+        wheel_dia[i], file_content[i], point_string[i] = curve_to_wheel_points(dxf_file=dxf_file, gan_distance=gan_distance_min+step_dia/2*i, gan_angle=gan_angle, mid_dia=mid_dia, work_lead=work_lead, dresser_r=dresser_r, shape_num=shape_num, if_plot=is_plot)
 
         # 将直径转换为4位小数的字符串 并替换小数点为下划线
         wheel_dia_str[i] = f"{wheel_dia[i]:.4f}".replace('.', '_')
@@ -54,7 +54,7 @@ def main_cycle(gan_distance_max, gan_distance_min, step_dia, gan_angle, mid_dia,
     IF (WHEEL_DIA<{wheel_dia[dia_num]:.4f}) GOTOF DIA_{wheel_dia_str[dia_num]};
     """
 
-    file_name = f"GS_{mid_dia}_{work_lead}".replace('.', '_') + '.SPF'
+    file_name = f"{save_path}/" + f"GS_{mid_dia}_{work_lead}".replace('.', '_') + '.SPF'
 
     # 将内容写入文件
     with open(file_name, "w", encoding="utf-8") as f:

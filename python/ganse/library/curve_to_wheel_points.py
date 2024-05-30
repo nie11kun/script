@@ -4,7 +4,7 @@ import sys
 import platform
 import library.calc as libs
 
-def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead, dresser_r=0, shape_num=500 ,if_plot=False):
+def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead, dresser_r=0, shape_num=500, if_plot=False):
     # 螺旋升角
     angle = np.rad2deg(np.arctan2(work_lead, np.pi * mid_dia))
     print(f'标准螺旋升角: {angle:.4f}')
@@ -412,11 +412,12 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         ax1.scatter(curve_points[:, 0], curve_points[:, 1], color='blue', s=10, label='标准齿形轨迹点')
         # 屏蔽法线显示
         # ax1.quiver(curve_points[:, 0], curve_points[:, 1], normals[:, 0], normals[:, 1], color='red', scale=20, label='Normals')
-        ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
+        ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fontsize=10)  # 调整图例位置
         ax1.set_aspect('equal')
-        ax1.set_title('标准齿形', pad=20)  # 调整标题位置
-        ax1.set_xlabel('X')
-        ax1.set_ylabel('Y')
+        ax1.set_title('标准齿形', pad=20, fontsize=14)  # 调整标题位置和字体大小
+        ax1.set_xlabel('X', fontsize=12)
+        ax1.set_ylabel('Y', fontsize=12)
+        ax1.grid(True)  # 添加网格
 
         # 绘制旋转后的曲线和法线，以及螺旋曲面上的点
         ax2 = fig.add_subplot(142, projection='3d')
@@ -431,11 +432,11 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         if delete_index_left is not None:
             ax2.scatter(anomalous_points_left[:, 0], anomalous_points_left[:, 1], anomalous_points_left[:, 2], color='#cd6700', s=12, label='左侧异常接触点')
 
-        ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2))  # 调整图例位置
-        ax2.set_title('滚道加工面', pad=20)  # 调整标题位置
-        ax2.set_xlabel('X')
-        ax2.set_ylabel('Y')
-        ax2.set_zlabel('Z')
+        ax2.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fontsize=10)  # 调整图例位置
+        ax2.set_title('滚道加工面', pad=20, fontsize=14)  # 调整标题位置和字体大小
+        ax2.set_xlabel('X', fontsize=12)
+        ax2.set_ylabel('Y', fontsize=12)
+        ax2.set_zlabel('Z', fontsize=12)
         ax2.quiver(new_origin[0], new_origin[1], new_origin[2], u[0], u[1], u[2], length=5, color='r', label='New X-axis')
         ax2.quiver(new_origin[0], new_origin[1], new_origin[2], v[0], v[1], v[2], length=5, color='g', label='New Y-axis')
         ax2.quiver(new_origin[0], new_origin[1], new_origin[2], w[0], w[1], w[2], length=5, color='b', label='New Z-axis')
@@ -473,11 +474,12 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         if tangent_anomalies_index_left is not None:
             ax3.quiver(original_points_abnormal_left[0, 0], original_points_abnormal_left[0, 1], tangent_anomalies_index_left[0], tangent_anomalies_index_left[1], color='#d406a4', scale=7, label=f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}')
 
-        ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.5))  # 调整图例位置
+        ax3.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fontsize=10)  # 调整图例位置
         ax3.set_aspect('equal')
-        ax3.set_title('原始轨迹与干涉轨迹对比')
-        ax3.set_xlabel('X')
-        ax3.set_ylabel('Y')
+        ax3.set_title('原始轨迹与干涉轨迹对比', fontsize=14)  # 调整标题位置和字体大小
+        ax3.set_xlabel('X', fontsize=12)
+        ax3.set_ylabel('Y', fontsize=12)
+        ax3.grid(True)  # 添加网格
 
         # 绘制平移后的点到第4张图
         ax4 = fig.add_subplot(144)
@@ -485,25 +487,23 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         ax4.scatter(helix_intersecting_points_2d_translated[:, 0], helix_intersecting_points_2d_translated[:, 1], color='red', s=1, label='优化后的干涉轨迹点')
         ax4.plot(helix_intersecting_points_2d_translated_contour[:, 0], helix_intersecting_points_2d_translated_contour[:, 1], label='滚轮修整轮廓线', linewidth=0.5)
         ax4.scatter(helix_intersecting_points_2d_translated_contour[:, 0], helix_intersecting_points_2d_translated_contour[:, 1], color='blue', s=1, label='滚轮修整轮廓点')
-        ax4.legend(loc='upper center', bbox_to_anchor=(0.5, -1))  # 调整图例位置
+        ax4.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fontsize=10)  # 调整图例位置
         ax4.set_aspect('equal')
-        ax4.set_title('最终干涉轨迹', pad=20)
-        ax4.set_xlabel('X')
-        ax4.set_ylabel('Y')
+        ax4.set_title('最终干涉轨迹', pad=20, fontsize=14)  # 调整标题位置和字体大小
+        ax4.set_xlabel('X', fontsize=12)
+        ax4.set_ylabel('Y', fontsize=12)
+        ax4.grid(True)  # 添加网格
 
-        multiline_text = f"工件中径：{mid_dia:.4f}\n" \
-                        f"工件导程：{work_lead:.4f}\n" \
-                        f"螺旋升角：{angle:.4f}\n" \
-                        f"砂轮安装角：{gan_angle:.4f}\n" \
+        multiline_text = f"工件中径：{mid_dia:.4f}  工件导程：{work_lead:.4f}\n" \
+                        f"螺旋升角：{angle:.4f}  砂轮安装角：{gan_angle:.4f}\n" \
                         f"砂轮杆据中心偏移：{gan_distance:.4f}\n" \
                         f"砂轮直径：{wheel_dia:.4f}\n" \
-                        f"砂轮齿高：{height_difference:.4f}\n" \
-                        f"砂轮齿宽：{width_max:.4f}\n" \
-                        f"修整齿高：{height_difference_contour:.4f}\n" \
-                        f"修整齿宽：{width_max_contour:.4f}"
+                        f"砂轮齿高：{height_difference:.4f}  砂轮齿宽：{width_max:.4f}\n" \
+                        f"修整齿高：{height_difference_contour:.4f}  修整齿宽：{width_max_contour:.4f}"
         fig.text(0.1, 0.95, multiline_text, fontsize=12, color='#000000', ha='left', va='top', wrap=True)
 
-        plt.show(block=False) # 显示图表但不会阻塞程序的执行
+        plt.tight_layout(rect=[0, 0, 1, 0.95])  # 调整布局，使所有图表和文本都能显示在图像内
+        plt.show(block=False)  # 显示图表但不会阻塞程序的执行
         plt.pause(10)  # 暂停以便图表渲染
 
     return wheel_dia, file_content, point_string
