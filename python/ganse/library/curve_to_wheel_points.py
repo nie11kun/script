@@ -405,11 +405,32 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         fig.add_trace(go.Scatter(x=curve_points[:, 0], y=curve_points[:, 1], mode='markers', 
                                 marker=dict(color='blue', size=5), name='标准齿形轨迹点'))
         
+        multiline_text = f"工件中径：{mid_dia:.4f}\n" \
+                        f"工件导程：{work_lead:.4f}\n" \
+                        f"螺旋升角：{angle:.4f}"
+        
         # 统一比例尺
         fig.update_layout(
             xaxis=dict(scaleanchor="y", scaleratio=1),
             yaxis=dict(scaleanchor="x", scaleratio=1),
-            title='标准齿形轨迹点'
+            title='标准齿形轨迹点',
+            annotations=[
+                dict(
+                    text=multiline_text.replace('\n', '<br>'),
+                    align='left',
+                    showarrow=False,
+                    xref='paper',
+                    yref='paper',
+                    x=1.05,
+                    y=-0.2,
+                    xanchor='right',
+                    yanchor='bottom',
+                    bordercolor='black',
+                    borderwidth=1,
+                    font=dict(size=12)
+                )
+            ],
+            margin=dict(l=50, r=300, t=50, b=200)  # 增加下边距以适应文本
         )
 
         # 创建第二个子图（3D），使用采样来减少点的数量
@@ -500,10 +521,32 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
                                         mode='markers+text', text=[f'左侧第一个异常点的切线斜率: {anomalies_ang_left:.4f}'], 
                                         marker=dict(color='#d406a4', size=8), name='左侧第一个异常点'))
         
+        multiline_text = f"螺旋升角：{angle:.4f}\n" \
+                        f"砂轮安装角：{gan_angle:.4f}\n" \
+                        f"砂轮杆据中心偏移：{gan_distance:.4f}\n" \
+                        f"砂轮直径：{wheel_dia:.4f}"
+        
         fig_2d.update_layout(
             xaxis=dict(scaleanchor="y", scaleratio=1),
             yaxis=dict(scaleanchor="x", scaleratio=1),
-            title='原始轨迹与干涉轨迹对比'
+            title='原始轨迹与干涉轨迹对比',
+            annotations=[
+                dict(
+                    text=multiline_text.replace('\n', '<br>'),
+                    align='left',
+                    showarrow=False,
+                    xref='paper',
+                    yref='paper',
+                    x=1.05,
+                    y=-0.2,
+                    xanchor='right',
+                    yanchor='bottom',
+                    bordercolor='black',
+                    borderwidth=1,
+                    font=dict(size=12)
+                )
+            ],
+            margin=dict(l=50, r=300, t=50, b=200)  # 增加下边距以适应文本
         )
 
         # 创建第四个子图
@@ -514,10 +557,32 @@ def curve_to_wheel_points(dxf_file, gan_distance, gan_angle, mid_dia, work_lead,
         fig_translated.add_trace(go.Scatter(x=helix_intersecting_points_2d_translated_contour[:, 0], y=helix_intersecting_points_2d_translated_contour[:, 1], 
                                             mode='markers', marker=dict(color='blue', size=2), name='滚轮修整轮廓点'))
 
+        multiline_text = f"砂轮齿高：{height_difference:.4f}\n" \
+                        f"砂轮齿宽：{width_max:.4f}\n" \
+                        f"修整齿高：{height_difference_contour:.4f}\n" \
+                        f"修整齿宽：{width_max_contour:.4f}"
+        
         fig_translated.update_layout(
             xaxis=dict(scaleanchor="y", scaleratio=1),
             yaxis=dict(scaleanchor="x", scaleratio=1),
-            title='最终干涉轨迹'
+            title='最终干涉轨迹',
+            annotations=[
+                dict(
+                    text=multiline_text.replace('\n', '<br>'),
+                    align='left',
+                    showarrow=False,
+                    xref='paper',
+                    yref='paper',
+                    x=1.05,
+                    y=-0.2,
+                    xanchor='right',
+                    yanchor='bottom',
+                    bordercolor='black',
+                    borderwidth=1,
+                    font=dict(size=12)
+                )
+            ],
+            margin=dict(l=50, r=300, t=50, b=200)  # 增加下边距以适应文本
         )
 
         # 保存图表到 HTML 文件
