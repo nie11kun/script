@@ -5,8 +5,9 @@ import os
 import json
 import threading
 import sys
-import time
 from itertools import cycle
+import platform
+import subprocess
 
 # 配置文件
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".InterferenceGrindingDressing.json")
@@ -22,6 +23,14 @@ def load_config():
 def save_config(config):
     with open(CONFIG_FILE, "w") as file:
         json.dump(config, file)
+
+def open_directory(path):
+    if platform.system() == "Windows":
+        os.startfile(path)
+    elif platform.system() == "Darwin":
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
 
 def on_submit():
     def run():
@@ -49,9 +58,15 @@ def on_submit():
                 "dxf_file": dxf_file,
                 "save_path": save_path
             }
+            # 保存参数
             save_config(config)
 
+            # 主循环
             main_cycle(gan_distance_max, gan_distance_min, step_dia, gan_angle, mid_dia, work_lead, dresser_r, shape_num, dxf_file, save_path)
+
+            # 打开保存路径目录
+            open_directory(save_path)
+
         except ValueError:
             messagebox.showerror("输入错误", "请输入有效的数字")
         finally:
