@@ -12,6 +12,9 @@ import subprocess
 # 配置文件
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".InterferenceGrindingDressing.json")
 
+VALID_USERNAME = "marco"  # 替换为你的用户名
+VALID_PASSWORD = "464116963"  # 替换为你的密码
+
 # 加载配置文件
 def load_config():
     if os.path.exists(CONFIG_FILE):
@@ -152,96 +155,150 @@ def animate_loading():
     
     rotate()
 
-# 创建主窗口
-root = tk.Tk()
-root.title("干涉磨削砂轮修整软件")
+def login():
+    username = username_entry.get()
+    password = password_entry.get()
+    if username == VALID_USERNAME and password == VALID_PASSWORD:
+        login_window.destroy()
+        show_main_window()
+    else:
+        messagebox.showerror("登录失败", "用户名或密码错误")
 
-# 创建主框架
-main_frame = tk.Frame(root, padx=10, pady=10)
-main_frame.grid(row=0, column=0, sticky="nsew")
+def show_main_window():
+    global root
+    root = tk.Tk()
+    root.title("干涉磨削砂轮修整软件")
 
-# 创建标签和输入框
-label_gan_distance_max = tk.Label(main_frame, text="砂轮杆偏移工件中心最大距离:")
-label_gan_distance_max.grid(row=0, column=0, sticky="e", pady=5)
-entry_gan_distance_max = tk.Entry(main_frame)
-entry_gan_distance_max.grid(row=0, column=1, pady=5)
+    # 创建主框架
+    main_frame = tk.Frame(root, padx=10, pady=10)
+    main_frame.grid(row=0, column=0, sticky="nsew")
 
-label_gan_distance_min = tk.Label(main_frame, text="砂轮杆偏移工件中心最小距离:")
-label_gan_distance_min.grid(row=1, column=0, sticky="e", pady=5)
-entry_gan_distance_min = tk.Entry(main_frame)
-entry_gan_distance_min.grid(row=1, column=1, pady=5)
+    # 创建标签和输入框
+    label_gan_distance_max = tk.Label(main_frame, text="砂轮杆偏移工件中心最大距离:")
+    label_gan_distance_max.grid(row=0, column=0, sticky="e", pady=5)
+    global entry_gan_distance_max
+    entry_gan_distance_max = tk.Entry(main_frame)
+    entry_gan_distance_max.grid(row=0, column=1, pady=5)
 
-label_step_dia = tk.Label(main_frame, text="砂轮直径步进:")
-label_step_dia.grid(row=2, column=0, sticky="e", pady=5)
-entry_step_dia = tk.Entry(main_frame)
-entry_step_dia.grid(row=2, column=1, pady=5)
+    label_gan_distance_min = tk.Label(main_frame, text="砂轮杆偏移工件中心最小距离:")
+    label_gan_distance_min.grid(row=1, column=0, sticky="e", pady=5)
+    global entry_gan_distance_min
+    entry_gan_distance_min = tk.Entry(main_frame)
+    entry_gan_distance_min.grid(row=1, column=1, pady=5)
 
-label_gan_angle = tk.Label(main_frame, text="砂轮安装角:")
-label_gan_angle.grid(row=3, column=0, sticky="e", pady=5)
-entry_gan_angle = tk.Entry(main_frame)
-entry_gan_angle.grid(row=3, column=1, pady=5)
+    label_step_dia = tk.Label(main_frame, text="砂轮直径步进:")
+    label_step_dia.grid(row=2, column=0, sticky="e", pady=5)
+    global entry_step_dia
+    entry_step_dia = tk.Entry(main_frame)
+    entry_step_dia.grid(row=2, column=1, pady=5)
 
-label_mid_dia = tk.Label(main_frame, text="工件中径:")
-label_mid_dia.grid(row=4, column=0, sticky="e", pady=5)
-entry_mid_dia = tk.Entry(main_frame)
-entry_mid_dia.grid(row=4, column=1, pady=5)
+    label_gan_angle = tk.Label(main_frame, text="砂轮安装角:")
+    label_gan_angle.grid(row=3, column=0, sticky="e", pady=5)
+    global entry_gan_angle
+    entry_gan_angle = tk.Entry(main_frame)
+    entry_gan_angle.grid(row=3, column=1, pady=5)
 
-label_work_lead = tk.Label(main_frame, text="导程:")
-label_work_lead.grid(row=5, column=0, sticky="e", pady=5)
-entry_work_lead = tk.Entry(main_frame)
-entry_work_lead.grid(row=5, column=1, pady=5)
+    label_mid_dia = tk.Label(main_frame, text="工件中径:")
+    label_mid_dia.grid(row=4, column=0, sticky="e", pady=5)
+    global entry_mid_dia
+    entry_mid_dia = tk.Entry(main_frame)
+    entry_mid_dia.grid(row=4, column=1, pady=5)
 
-label_dresser_r = tk.Label(main_frame, text="滚轮圆弧半径:")
-label_dresser_r.grid(row=6, column=0, sticky="e", pady=5)
-entry_dresser_r = tk.Entry(main_frame)
-entry_dresser_r.grid(row=6, column=1, pady=5)
+    label_work_lead = tk.Label(main_frame, text="导程:")
+    label_work_lead.grid(row=5, column=0, sticky="e", pady=5)
+    global entry_work_lead
+    entry_work_lead = tk.Entry(main_frame)
+    entry_work_lead.grid(row=5, column=1, pady=5)
 
-label_shape_num = tk.Label(main_frame, text="最终曲线点密度:")
-label_shape_num.grid(row=7, column=0, sticky="e", pady=5)
-entry_shape_num = tk.Entry(main_frame)
-entry_shape_num.grid(row=7, column=1, pady=5)
+    label_dresser_r = tk.Label(main_frame, text="滚轮圆弧半径:")
+    label_dresser_r.grid(row=6, column=0, sticky="e", pady=5)
+    global entry_dresser_r
+    entry_dresser_r = tk.Entry(main_frame)
+    entry_dresser_r.grid(row=6, column=1, pady=5)
 
-label_dxf_file = tk.Label(main_frame, text="dxf 文件地址:")
-label_dxf_file.grid(row=8, column=0, sticky="e", pady=5)
-entry_dxf_file = tk.Entry(main_frame)
-entry_dxf_file.grid(row=8, column=1, pady=5)
-select_dxf_button = tk.Button(main_frame, text="选择文件", command=select_dxf_file)
-select_dxf_button.grid(row=8, column=2, padx=5, pady=5)
+    label_shape_num = tk.Label(main_frame, text="最终曲线点密度:")
+    label_shape_num.grid(row=7, column=0, sticky="e", pady=5)
+    global entry_shape_num
+    entry_shape_num = tk.Entry(main_frame)
+    entry_shape_num.grid(row=7, column=1, pady=5)
 
-label_save_path = tk.Label(main_frame, text="输出程序路径:")
-label_save_path.grid(row=9, column=0, sticky="e", pady=5)
-entry_save_path = tk.Entry(main_frame)
-entry_save_path.grid(row=9, column=1, pady=5)
-select_save_path_button = tk.Button(main_frame, text="选择路径", command=select_save_path)
-select_save_path_button.grid(row=9, column=2, padx=5, pady=5)
+    label_dxf_file = tk.Label(main_frame, text="dxf 文件地址:")
+    label_dxf_file.grid(row=8, column=0, sticky="e", pady=5)
+    global entry_dxf_file
+    entry_dxf_file = tk.Entry(main_frame)
+    entry_dxf_file.grid(row=8, column=1, pady=5)
+    select_dxf_button = tk.Button(main_frame, text="选择文件", command=select_dxf_file)
+    select_dxf_button.grid(row=8, column=2, padx=5, pady=5)
 
-# 创建提交按钮
-submit_button = tk.Button(main_frame, text="提交", command=on_submit)
-submit_button.grid(row=10, columnspan=3, pady=10)
+    label_save_path = tk.Label(main_frame, text="输出程序路径:")
+    label_save_path.grid(row=9, column=0, sticky="e", pady=5)
+    global entry_save_path
+    entry_save_path = tk.Entry(main_frame)
+    entry_save_path.grid(row=9, column=1, pady=5)
+    select_save_path_button = tk.Button(main_frame, text="选择路径", command=select_save_path)
+    select_save_path_button.grid(row=9, column=2, padx=5, pady=5)
 
-# 显示结果的标签
-result = tk.StringVar()
-result_label = tk.Label(main_frame, textvariable=result, wraplength=400)
-result_label.grid(row=11, columnspan=3, pady=10)
+    # 创建提交按钮
+    global submit_button
+    submit_button = tk.Button(main_frame, text="提交", command=on_submit)
+    submit_button.grid(row=10, columnspan=3, pady=10)
 
-# 创建 Canvas 用于动画
-canvas = tk.Canvas(main_frame, width=100, height=100)
-canvas.grid(row=12, columnspan=3, pady=10)
-canvas.grid_remove()  # 初始隐藏动画
+    # 显示结果的标签
+    global result
+    result = tk.StringVar()
+    result_label = tk.Label(main_frame, textvariable=result, wraplength=400)
+    result_label.grid(row=11, columnspan=3, pady=10)
 
-# 提示信息标签
-info_label = tk.Label(main_frame, text="正在生成齿形程序中...", fg="blue")
-info_label.grid(row=13, columnspan=3, pady=10)
-info_label.grid_remove()  # 初始隐藏提示信息
+    # 创建 Canvas 用于动画
+    global canvas
+    canvas = tk.Canvas(main_frame, width=100, height=100)
+    canvas.grid(row=12, columnspan=3, pady=10)
+    canvas.grid_remove()  # 初始隐藏动画
 
-# 全局变量用于控制动画
-animation_running = False
+    # 提示信息标签
+    global info_label
+    info_label = tk.Label(main_frame, text="正在生成齿形程序中...", fg="blue")
+    info_label.grid(row=13, columnspan=3, pady=10)
+    info_label.grid_remove()  # 初始隐藏提示信息
 
-# 加载保存的参数
-load_saved_values()
+    # 全局变量用于控制动画
+    global animation_running
+    animation_running = False
 
-# 绑定关闭事件
-root.protocol("WM_DELETE_WINDOW", on_closing)
+    # 加载保存的参数
+    load_saved_values()
 
-# 运行主循环
-root.mainloop()
+    # 绑定关闭事件
+    root.protocol("WM_DELETE_WINDOW", on_closing)
+
+    # 运行主循环
+    root.mainloop()
+
+# 优化后的登录窗口
+login_window = tk.Tk()
+login_window.title("登录")
+
+login_window.geometry("300x200")
+login_window.configure(bg="#f0f0f0")
+
+login_frame = tk.Frame(login_window, padx=20, pady=20, bg="#f0f0f0")
+login_frame.pack(expand=True)
+
+title_label = tk.Label(login_frame, text="用户登录", font=("Helvetica", 16), bg="#f0f0f0")
+title_label.grid(row=0, columnspan=2, pady=(0, 10))
+
+username_label = tk.Label(login_frame, text="用户名:", bg="#f0f0f0")
+username_label.grid(row=1, column=0, sticky="e", pady=5)
+username_entry = tk.Entry(login_frame)
+username_entry.grid(row=1, column=1, pady=5)
+
+password_label = tk.Label(login_frame, text="密码:", bg="#f0f0f0")
+password_label.grid(row=2, column=0, sticky="e", pady=5)
+password_entry = tk.Entry(login_frame, show="*")
+password_entry.grid(row=2, column=1, pady=5)
+
+login_button = tk.Button(login_frame, text="登录", command=login, bg="#4CAF50", fg="white", padx=10, pady=5)
+login_button.grid(row=3, columnspan=2, pady=(10, 0))
+
+# 运行登录窗口主循环
+login_window.mainloop()
