@@ -1,4 +1,5 @@
-# 执行 python setup.py build 打包
+# windows 执行 python setup.py build 打包
+# macOS 执行 python3 setup.py bdist_mac 打包
 
 from cx_Freeze import setup, Executable
 import sys
