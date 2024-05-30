@@ -154,7 +154,7 @@ def animate_loading():
 
 # 创建主窗口
 root = tk.Tk()
-root.title("参数输入界面")
+root.title("干涉磨削砂轮修整软件")
 
 # 创建主框架
 main_frame = tk.Frame(root, padx=10, pady=10)
