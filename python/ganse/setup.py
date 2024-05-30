@@ -8,7 +8,7 @@ import sys
 build_exe_options = {
     "packages": [
         "pandas", "numpy", "scipy", "plotly", "tkinter", "ezdxf", 
-        "llvmlite", "numba", "packaging", "pyparsing", 
+        "llvmlite", "numba", "packaging", "pyparsing", "ttkbootstrap", 
         "pytz", "six", "tenacity", "typing_extensions", "tzdata"
     ],
     "excludes": ["unittest", "email"],
