@@ -134,11 +134,11 @@ def on_submit():
             CTkMessageBox(root, title=current_language["invalid_input_title"], message=current_language["invalid_input_text"])
         finally:
             # 操作完成后启用提交按钮并停止进度条
-            submit_button.configure(state=tk.NORMAL, fg_color=None)  # 启用提交按钮并恢复颜色
+            submit_button.configure(state=ctk.NORMAL, fg_color=ctk.ThemeManager.theme["CTkButton"]["fg_color"])
             stop_animation()
 
     # 开始提交操作时禁用提交按钮
-    submit_button.configure(state=tk.DISABLED, fg_color="grey")  # 禁用提交按钮并改为灰色
+    submit_button.configure(state=ctk.DISABLED, fg_color="grey")  # 禁用提交按钮并改为灰色
     start_animation()  # 启动进度条动画
     thread = threading.Thread(target=run)
     thread.daemon = True  # 将线程设置为守护线程
@@ -184,22 +184,17 @@ def on_closing():
     sys.exit()
 
 # 动画相关函数
-def update_progress():
-    while animation_running:
-        progress_bar.step(1)  # 每次递增一步
-        time.sleep(0.1)  # 控制进度条更新速度
-
 def start_animation():
     global animation_running
     animation_running = True
     progress_var.set(0)  # 确保进度条从0开始
-    progress_bar.pack(pady=10)  # 显示进度条
+    progress_bar.configure(progress_color="#4a85c4")  # 设置进度条颜色为灰色
     progress_bar.start()  # 启动进度条动画
-    root.update_idletasks()  # 强制刷新界面
 
 def stop_animation():
     global animation_running
     animation_running = False
+    progress_bar.configure(progress_color="#959ba1")  # 设置进度条颜色为灰色
     progress_bar.stop()  # 停止进度条动画
 
 def remote_validate(username, password):
@@ -422,6 +417,7 @@ def show_main_window():
     global progress_bar
     progress_bar = ctk.CTkProgressBar(button_frame, variable=progress_var, mode='indeterminate')
     progress_bar.pack(pady=10)
+    progress_bar.configure(progress_color="#959ba1")  # 设置进度条颜色为灰色
 
     # 全局变量用于控制动画
     global animation_running
