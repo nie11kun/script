@@ -9,7 +9,8 @@ build_exe_options = {
     "packages": [
         "pandas", "numpy", "scipy", "plotly", "tkinter", "ezdxf", 
         "llvmlite", "numba", "packaging", "pyparsing", "customtkinter", 
-        "pytz", "six", "tenacity", "typing_extensions", "tzdata"
+        "pytz", "six", "tenacity", "typing_extensions", "tzdata",
+        "certifi", "idna", "requests", "urllib3"
     ],
     "excludes": ["unittest", "email"],
     "include_files": [

@@ -9,12 +9,31 @@ import sys
 import time
 import platform
 import subprocess
+import requests
 
 # 配置文件
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".InterferenceGrindingDressing.json")
 
-VALID_USERNAME = "marco"  # 替换为你的用户名
-VALID_PASSWORD = "464116963"  # 替换为你的密码
+LOCAL_ADMIN_USERNAME = "marco"
+LOCAL_ADMIN_PASSWORD = "464116963"
+SERVER_URL = "https://your-server-url.com/api/auth"  # 替换为你的服务器URL
+
+class CTkMessageBox(ctk.CTkToplevel):
+    def __init__(self, master, title="消息", message=""):
+        super().__init__(master)
+        self.title(title)
+        self.geometry("300x150")
+        center_window(self, 300, 150)
+
+        self.label = ctk.CTkLabel(self, text=message, font=FONT)
+        self.label.pack(pady=20)
+
+        self.button = ctk.CTkButton(self, text="确定", command=self.destroy, font=FONT)
+        self.button.pack(pady=10)
+
+        self.transient(master)
+        self.grab_set()
+        master.wait_window(self)
 
 # 加载配置文件
 def load_config():
@@ -79,7 +98,7 @@ def on_submit():
             open_directory(save_path)
 
         except ValueError:
-            messagebox.showerror("输入错误", "请输入有效的数字")
+            CTkMessageBox(root, title="输入错误", message="请输入有效的数字")
         finally:
             # 操作完成后启用提交按钮并停止进度条
             submit_button.configure(state=ctk.NORMAL)
@@ -153,14 +172,27 @@ def stop_animation():
     progress_bar.stop()  # 停止进度条动画
     progress_bar.pack_forget()  # 隐藏进度条
 
+def remote_validate(username, password):
+    try:
+        response = requests.post(SERVER_URL, json={"username": username, "password": password})
+        response_data = response.json()
+        return response_data.get("status") == "success"
+    except requests.RequestException as e:
+        print(f"请求错误: {e}")
+        return False
+
 def login():
     username = username_entry.get()
     password = password_entry.get()
-    if username == VALID_USERNAME and password == VALID_PASSWORD:
+
+    if username == LOCAL_ADMIN_USERNAME and password == LOCAL_ADMIN_PASSWORD:
+        login_window.destroy()
+        show_main_window()
+    elif remote_validate(username, password):
         login_window.destroy()
         show_main_window()
     else:
-        messagebox.showerror("登录失败", "用户名或密码错误")
+        CTkMessageBox(login_window, title="登录失败", message="用户名或密码错误")
 
 # 验证是否输入值是正实数
 def validate_positive_float(value_if_allowed):
