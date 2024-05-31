@@ -348,6 +348,7 @@ username_label = ctk.CTkLabel(login_frame, text="用户名:", font=FONT)
 username_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 username_entry = ctk.CTkEntry(login_frame)
 username_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+username_entry.focus_set()  # 默认选中用户名输入栏
 
 password_label = ctk.CTkLabel(login_frame, text="密码:", font=FONT)
 password_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
