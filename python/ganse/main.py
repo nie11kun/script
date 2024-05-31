@@ -10,6 +10,7 @@ import time
 import platform
 import subprocess
 import requests
+import math
 
 # 配置文件
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".InterferenceGrindingDressing.json")
@@ -247,6 +248,22 @@ def validate_positive_int(value_if_allowed):
     except ValueError:
         return False
 
+def update_angle_result(*args):
+    try:
+        mid_dia_str = entry_mid_dia.get()
+        work_lead_str = entry_work_lead.get()
+
+        mid_dia = float(mid_dia_str) if mid_dia_str else 0
+        work_lead = float(work_lead_str) if work_lead_str else 0
+
+        if mid_dia > 0 and work_lead >= 0:
+            angle = math.degrees(math.atan(work_lead / (math.pi * mid_dia)))
+            angle_result_label.configure(text=f"{angle:.2f}°")
+        else:
+            angle_result_label.configure(text="")
+    except ValueError:
+        angle_result_label.configure(text="")
+
 # 设置全局字体变量
 if platform.system() == "Windows":
     FONT = ("Microsoft YaHei", 14)
@@ -267,11 +284,13 @@ def create_tabs():
     global entry_mid_dia
     entry_mid_dia = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
     entry_mid_dia.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+    entry_mid_dia.bind("<FocusOut>", update_angle_result)
 
     ctk.CTkLabel(tab1, text=current_language["lead"], font=FONT).grid(row=1, column=0, padx=10, pady=10, sticky="w")
     global entry_work_lead
     entry_work_lead = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
     entry_work_lead.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+    entry_work_lead.bind("<FocusOut>", update_angle_result)
 
     ctk.CTkLabel(tab1, text=current_language["max_distance"], font=FONT).grid(row=2, column=0, padx=10, pady=10, sticky="w")
     global entry_gan_distance_max
@@ -292,6 +311,11 @@ def create_tabs():
     global entry_gan_angle
     entry_gan_angle = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
     entry_gan_angle.grid(row=5, column=1, padx=10, pady=10, sticky="ew")
+
+    # 添加一个用于显示角度结果的 Label
+    global angle_result_label
+    angle_result_label = ctk.CTkLabel(tab1, text="", font=FONT)
+    angle_result_label.grid(row=5, column=2, padx=10, pady=10, sticky="w")
 
     ctk.CTkLabel(tab1, text=current_language["dxf_file_path"], font=FONT).grid(row=6, column=0, padx=10, pady=10, sticky="w")
     global entry_dxf_file
@@ -325,6 +349,9 @@ def create_tabs():
 
     # 加载保存的参数
     load_saved_values()
+
+    # 计算螺旋升角
+    update_angle_result()
 
     # 确保选项卡中的元素自适应窗体左右和上下大小
     tab1.grid_columnconfigure(1, weight=1)
