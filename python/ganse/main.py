@@ -36,6 +36,13 @@ def open_directory(path):
     else:
         subprocess.Popen(["xdg-open", path])
 
+def center_window(window, width, height):
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    window.geometry(f'{width}x{height}+{x}+{y}')
+
 def on_submit():
     def run():
         try:
@@ -175,11 +182,20 @@ def validate_positive_int(value_if_allowed):
     except ValueError:
         return False
 
+# 设置全局字体变量
+if platform.system() == "Windows":
+    FONT = ("Microsoft YaHei", 14)
+elif platform.system() == "Darwin":
+    FONT = ("PingFang SC", 14)
+else:
+    FONT = ("WenQuanYi Zen Hei", 14)
+
+# 在主窗口中使用 grid 布局管理器，并配置列和行的 weight 属性
 def show_main_window():
     global root, progress_bar, progress_var
     root = ctk.CTk()
     root.title("干涉磨削砂轮修整软件")
-    root.geometry("800x600")  # 设置固定窗口大小
+    center_window(root, 800, 600)  # 居中显示窗口
 
     vcmd_float = (root.register(validate_positive_float), "%P")
     vcmd_int = (root.register(validate_positive_int), "%P")
@@ -188,8 +204,8 @@ def show_main_window():
     main_frame = ctk.CTkFrame(root)
     main_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
 
-    title_label = ctk.CTkLabel(main_frame, text="参数配置", font=("Helvetica", 18))
-    title_label.grid(row=0, column=0, columnspan=2, pady=10)
+    title_label = ctk.CTkLabel(main_frame, text="参数配置", font=FONT)
+    title_label.grid(row=0, column=0, columnspan=2, pady=10, sticky="ew")
 
     # 创建选项卡框架
     tab_frame = ctk.CTkFrame(main_frame)
@@ -204,61 +220,65 @@ def show_main_window():
 
     # 参数1中的控件
     tab1 = tabview.tab("参数1")
-    ctk.CTkLabel(tab1, text="工件中径:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="工件中径:", font=FONT).grid(row=0, column=0, padx=10, pady=10, sticky="w")
     global entry_mid_dia
     entry_mid_dia = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
-    entry_mid_dia.grid(row=0, column=1, padx=10, pady=10)
+    entry_mid_dia.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
-    ctk.CTkLabel(tab1, text="导程:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="导程:", font=FONT).grid(row=1, column=0, padx=10, pady=10, sticky="w")
     global entry_work_lead
     entry_work_lead = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
-    entry_work_lead.grid(row=1, column=1, padx=10, pady=10)
+    entry_work_lead.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
 
-    ctk.CTkLabel(tab1, text="砂轮杆偏移工件中心最大距离:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="砂轮杆偏移工件中心最大距离:", font=FONT).grid(row=2, column=0, padx=10, pady=10, sticky="w")
     global entry_gan_distance_max
     entry_gan_distance_max = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
-    entry_gan_distance_max.grid(row=2, column=1, padx=10, pady=10)
+    entry_gan_distance_max.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
 
-    ctk.CTkLabel(tab1, text="砂轮杆偏移工件中心最小距离:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="砂轮杆偏移工件中心最小距离:", font=FONT).grid(row=3, column=0, padx=10, pady=10, sticky="w")
     global entry_gan_distance_min
     entry_gan_distance_min = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
-    entry_gan_distance_min.grid(row=3, column=1, padx=10, pady=10)
+    entry_gan_distance_min.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
 
-    ctk.CTkLabel(tab1, text="砂轮直径步进:").grid(row=4, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="砂轮直径步进:", font=FONT).grid(row=4, column=0, padx=10, pady=10, sticky="w")
     global entry_step_dia
     entry_step_dia = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
-    entry_step_dia.grid(row=4, column=1, padx=10, pady=10)
+    entry_step_dia.grid(row=4, column=1, padx=10, pady=10, sticky="ew")
 
-    ctk.CTkLabel(tab1, text="砂轮安装角:").grid(row=5, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="砂轮安装角:", font=FONT).grid(row=5, column=0, padx=10, pady=10, sticky="w")
     global entry_gan_angle
     entry_gan_angle = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
-    entry_gan_angle.grid(row=5, column=1, padx=10, pady=10)
+    entry_gan_angle.grid(row=5, column=1, padx=10, pady=10, sticky="ew")
 
-    ctk.CTkLabel(tab1, text="dxf 文件地址:").grid(row=6, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="dxf 文件地址:", font=FONT).grid(row=6, column=0, padx=10, pady=10, sticky="w")
     global entry_dxf_file
     entry_dxf_file = ctk.CTkEntry(tab1)
-    entry_dxf_file.grid(row=6, column=1, padx=10, pady=10)
-    select_dxf_button = ctk.CTkButton(tab1, text="选择文件", command=select_dxf_file)
+    entry_dxf_file.grid(row=6, column=1, padx=10, pady=10, sticky="ew")
+    select_dxf_button = ctk.CTkButton(tab1, text="选择文件", command=select_dxf_file, font=FONT)
     select_dxf_button.grid(row=6, column=2, padx=10, pady=10)
 
     # 参数2中的控件
     tab2 = tabview.tab("参数2")
-    ctk.CTkLabel(tab2, text="滚轮圆弧半径:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab2, text="滚轮圆弧半径:", font=FONT).grid(row=0, column=0, padx=10, pady=10, sticky="w")
     global entry_dresser_r
     entry_dresser_r = ctk.CTkEntry(tab2, validate="key", validatecommand=vcmd_float)
-    entry_dresser_r.grid(row=0, column=1, padx=10, pady=10)
+    entry_dresser_r.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
-    ctk.CTkLabel(tab2, text="最终曲线点密度:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab2, text="最终曲线点密度:", font=FONT).grid(row=1, column=0, padx=10, pady=10, sticky="w")
     global entry_shape_num
     entry_shape_num = ctk.CTkEntry(tab2, validate="key", validatecommand=vcmd_int)
-    entry_shape_num.grid(row=1, column=1, padx=10, pady=10)
+    entry_shape_num.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
 
-    ctk.CTkLabel(tab2, text="输出程序路径:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab2, text="输出程序路径:", font=FONT).grid(row=2, column=0, padx=10, pady=10, sticky="w")
     global entry_save_path
     entry_save_path = ctk.CTkEntry(tab2)
-    entry_save_path.grid(row=2, column=1, padx=10, pady=10)
-    select_save_path_button = ctk.CTkButton(tab2, text="选择路径", command=select_save_path)
+    entry_save_path.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
+    select_save_path_button = ctk.CTkButton(tab2, text="选择路径", command=select_save_path, font=FONT)
     select_save_path_button.grid(row=2, column=2, padx=10, pady=10)
+
+    # 添加空白标签来填充空白区域，使元素上下对齐
+    for i in range(3, 7):
+        ctk.CTkLabel(tab2, text="").grid(row=i, column=0, padx=10, pady=10, sticky="w")
 
     # 创建提交按钮框架
     button_frame = ctk.CTkFrame(main_frame)
@@ -266,7 +286,7 @@ def show_main_window():
 
     # 创建提交按钮
     global submit_button
-    submit_button = ctk.CTkButton(button_frame, text="提交", command=on_submit)
+    submit_button = ctk.CTkButton(button_frame, text="提交", command=on_submit, font=FONT)
     submit_button.pack(pady=10)
 
     # 创建进度条
@@ -291,32 +311,58 @@ def show_main_window():
     main_frame.grid_columnconfigure(1, weight=1)
     main_frame.grid_rowconfigure(2, weight=0)
 
+    # 确保选项卡中的元素自适应窗体左右和上下大小
+    tab1.grid_columnconfigure(1, weight=1)
+    tab1.grid_rowconfigure(0, weight=1)
+    tab1.grid_rowconfigure(1, weight=1)
+    tab1.grid_rowconfigure(2, weight=1)
+    tab1.grid_rowconfigure(3, weight=1)
+    tab1.grid_rowconfigure(4, weight=1)
+    tab1.grid_rowconfigure(5, weight=1)
+    tab1.grid_rowconfigure(6, weight=1)
+
+    tab2.grid_columnconfigure(1, weight=1)
+    tab2.grid_rowconfigure(0, weight=1)
+    tab2.grid_rowconfigure(1, weight=1)
+    tab2.grid_rowconfigure(2, weight=1)
+    tab2.grid_rowconfigure(3, weight=1)
+    tab2.grid_rowconfigure(4, weight=1)
+    tab2.grid_rowconfigure(5, weight=1)
+    tab2.grid_rowconfigure(6, weight=1)
+
     # 运行主循环
     root.mainloop()
 
 # 优化后的登录窗口
 login_window = ctk.CTk()
 login_window.title("登录")
-login_window.geometry("400x320")  # 设置窗口大小
+center_window(login_window, 350, 250)  # 居中显示窗口
 
 login_frame = ctk.CTkFrame(login_window)
 login_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
 
-title_label = ctk.CTkLabel(login_frame, text="用户登录", font=("Helvetica", 16))
-title_label.pack(pady=(0, 20))
+title_label = ctk.CTkLabel(login_frame, text="用户登录", font=FONT)
+title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20), sticky="ew")
 
-username_label = ctk.CTkLabel(login_frame, text="用户名:")
-username_label.pack(fill=tk.X, pady=5)
+username_label = ctk.CTkLabel(login_frame, text="用户名:", font=FONT)
+username_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 username_entry = ctk.CTkEntry(login_frame)
-username_entry.pack(fill=tk.X, pady=5)
+username_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 
-password_label = ctk.CTkLabel(login_frame, text="密码:")
-password_label.pack(fill=tk.X, pady=5)
+password_label = ctk.CTkLabel(login_frame, text="密码:", font=FONT)
+password_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
 password_entry = ctk.CTkEntry(login_frame, show="*")
-password_entry.pack(fill=tk.X, pady=5)
+password_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
 
-login_button = ctk.CTkButton(login_frame, text="登录", command=login)
-login_button.pack(pady=20)
+login_button = ctk.CTkButton(login_frame, text="登录", command=login, font=FONT)
+login_button.grid(row=3, column=0, columnspan=2, pady=20)
+
+# 配置列的 weight，使其自适应窗体左右大小
+login_frame.grid_columnconfigure(0, weight=1)
+login_frame.grid_columnconfigure(1, weight=1)
+# 配置行的 weight，使其自适应窗体上下大小
+login_frame.grid_rowconfigure(1, weight=1)
+login_frame.grid_rowconfigure(2, weight=1)
 
 # 绑定回车键事件到登录按钮
 login_window.bind("<Return>", lambda event: login())
