@@ -134,12 +134,10 @@ def on_submit():
             CTkMessageBox(root, title=current_language["invalid_input_title"], message=current_language["invalid_input_text"])
         finally:
             # 操作完成后启用提交按钮并停止进度条
-            submit_button.configure(state=ctk.NORMAL)
             submit_button.configure(state=tk.NORMAL, fg_color=None)  # 启用提交按钮并恢复颜色
             stop_animation()
 
     # 开始提交操作时禁用提交按钮
-    submit_button.configure(state=ctk.DISABLED)
     submit_button.configure(state=tk.DISABLED, fg_color="grey")  # 禁用提交按钮并改为灰色
     start_animation()  # 启动进度条动画
     thread = threading.Thread(target=run)
@@ -203,7 +201,6 @@ def stop_animation():
     global animation_running
     animation_running = False
     progress_bar.stop()  # 停止进度条动画
-    progress_bar.pack_forget()  # 隐藏进度条
 
 def remote_validate(username, password):
     try:
