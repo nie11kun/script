@@ -76,10 +76,12 @@ def on_submit():
         finally:
             # 操作完成后启用提交按钮并停止进度条
             submit_button.configure(state=ctk.NORMAL)
+            submit_button.configure(state=tk.NORMAL, fg_color=None)  # 启用提交按钮并恢复颜色
             stop_animation()
 
     # 开始提交操作时禁用提交按钮
     submit_button.configure(state=ctk.DISABLED)
+    submit_button.configure(state=tk.DISABLED, fg_color="grey")  # 禁用提交按钮并改为灰色
     start_animation()  # 启动进度条动画
     thread = threading.Thread(target=run)
     thread.daemon = True  # 将线程设置为守护线程
@@ -154,7 +156,7 @@ def login():
         messagebox.showerror("登录失败", "用户名或密码错误")
 
 def show_main_window():
-    global root, frame1, frame2, progress_bar, progress_var
+    global root, progress_bar, progress_var
     root = ctk.CTk()
     root.title("干涉磨削砂轮修整软件")
     root.geometry("800x600")  # 设置固定窗口大小
@@ -164,95 +166,80 @@ def show_main_window():
     main_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
 
     title_label = ctk.CTkLabel(main_frame, text="参数配置", font=("Helvetica", 18))
-    title_label.pack(pady=10)
+    title_label.grid(row=0, column=0, columnspan=2, pady=10)
 
-    # 创建切换框架和按钮的容器
+    # 创建选项卡框架
     tab_frame = ctk.CTkFrame(main_frame)
-    tab_frame.pack(side=tk.TOP, fill=tk.X)
+    tab_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
 
-    # 创建内容框架
-    content_frame = ctk.CTkFrame(main_frame)
-    content_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+    # 创建选项卡视图
+    tabview = ctk.CTkTabview(tab_frame)
+    tabview.pack(expand=True, fill=tk.BOTH)
 
-    # 创建 frame1 和 frame2 放在 content_frame 中，并设置为 grid 布局
-    frame1 = ctk.CTkFrame(content_frame)
-    frame1.grid(row=0, column=0, sticky="nsew")
+    tabview.add("参数1")
+    tabview.add("参数2")
 
-    frame2 = ctk.CTkFrame(content_frame)
-    frame2.grid(row=0, column=0, sticky="nsew")
-
-    content_frame.grid_rowconfigure(0, weight=1)
-    content_frame.grid_columnconfigure(0, weight=1)
-
-    # 初始显示 frame1
-    frame1.tkraise()
-
-    # 创建选项卡切换按钮
-    tab1_button = ctk.CTkButton(tab_frame, text="参数1", command=lambda: frame1.tkraise())
-    tab1_button.pack(side=tk.LEFT, padx=10, pady=10)
-
-    tab2_button = ctk.CTkButton(tab_frame, text="参数2", command=lambda: frame2.tkraise())
-    tab2_button.pack(side=tk.LEFT, padx=10, pady=10)
-
-    # frame1中的控件
-    ctk.CTkLabel(frame1, text="工件中径:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+    # 参数1中的控件
+    tab1 = tabview.tab("参数1")
+    ctk.CTkLabel(tab1, text="工件中径:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
     global entry_mid_dia
-    entry_mid_dia = ctk.CTkEntry(frame1)
+    entry_mid_dia = ctk.CTkEntry(tab1)
     entry_mid_dia.grid(row=0, column=1, padx=10, pady=10)
 
-    ctk.CTkLabel(frame1, text="导程:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="导程:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
     global entry_work_lead
-    entry_work_lead = ctk.CTkEntry(frame1)
+    entry_work_lead = ctk.CTkEntry(tab1)
     entry_work_lead.grid(row=1, column=1, padx=10, pady=10)
 
-    ctk.CTkLabel(frame1, text="砂轮杆偏移工件中心最大距离:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="砂轮杆偏移工件中心最大距离:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
     global entry_gan_distance_max
-    entry_gan_distance_max = ctk.CTkEntry(frame1)
+    entry_gan_distance_max = ctk.CTkEntry(tab1)
     entry_gan_distance_max.grid(row=2, column=1, padx=10, pady=10)
 
-    ctk.CTkLabel(frame1, text="砂轮杆偏移工件中心最小距离:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="砂轮杆偏移工件中心最小距离:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
     global entry_gan_distance_min
-    entry_gan_distance_min = ctk.CTkEntry(frame1)
+    entry_gan_distance_min = ctk.CTkEntry(tab1)
     entry_gan_distance_min.grid(row=3, column=1, padx=10, pady=10)
 
-    ctk.CTkLabel(frame1, text="砂轮直径步进:").grid(row=4, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="砂轮直径步进:").grid(row=4, column=0, padx=10, pady=10, sticky="w")
     global entry_step_dia
-    entry_step_dia = ctk.CTkEntry(frame1)
+    entry_step_dia = ctk.CTkEntry(tab1)
     entry_step_dia.grid(row=4, column=1, padx=10, pady=10)
 
-    ctk.CTkLabel(frame1, text="砂轮安装角:").grid(row=5, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="砂轮安装角:").grid(row=5, column=0, padx=10, pady=10, sticky="w")
     global entry_gan_angle
-    entry_gan_angle = ctk.CTkEntry(frame1)
+    entry_gan_angle = ctk.CTkEntry(tab1)
     entry_gan_angle.grid(row=5, column=1, padx=10, pady=10)
 
-    ctk.CTkLabel(frame1, text="dxf 文件地址:").grid(row=6, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab1, text="dxf 文件地址:").grid(row=6, column=0, padx=10, pady=10, sticky="w")
     global entry_dxf_file
-    entry_dxf_file = ctk.CTkEntry(frame1)
+    entry_dxf_file = ctk.CTkEntry(tab1)
     entry_dxf_file.grid(row=6, column=1, padx=10, pady=10)
-    select_dxf_button = ctk.CTkButton(frame1, text="选择文件", command=select_dxf_file)
+    select_dxf_button = ctk.CTkButton(tab1, text="选择文件", command=select_dxf_file)
     select_dxf_button.grid(row=6, column=2, padx=10, pady=10)
 
-    # frame2中的控件
-    ctk.CTkLabel(frame2, text="滚轮圆弧半径:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+    # 参数2中的控件
+    tab2 = tabview.tab("参数2")
+    ctk.CTkLabel(tab2, text="滚轮圆弧半径:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
     global entry_dresser_r
-    entry_dresser_r = ctk.CTkEntry(frame2)
+    entry_dresser_r = ctk.CTkEntry(tab2)
     entry_dresser_r.grid(row=0, column=1, padx=10, pady=10)
 
-    ctk.CTkLabel(frame2, text="最终曲线点密度:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab2, text="最终曲线点密度:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
     global entry_shape_num
-    entry_shape_num = ctk.CTkEntry(frame2)
+    entry_shape_num = ctk.CTkEntry(tab2)
     entry_shape_num.grid(row=1, column=1, padx=10, pady=10)
 
-    ctk.CTkLabel(frame2, text="输出程序路径:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+    ctk.CTkLabel(tab2, text="输出程序路径:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
     global entry_save_path
-    entry_save_path = ctk.CTkEntry(frame2)
+    entry_save_path = ctk.CTkEntry(tab2)
     entry_save_path.grid(row=2, column=1, padx=10, pady=10)
-    select_save_path_button = ctk.CTkButton(frame2, text="选择路径", command=select_save_path)
+    select_save_path_button = ctk.CTkButton(tab2, text="选择路径", command=select_save_path)
     select_save_path_button.grid(row=2, column=2, padx=10, pady=10)
 
     # 创建提交按钮框架
     button_frame = ctk.CTkFrame(main_frame)
-    button_frame.pack(side=tk.BOTTOM, fill=tk.X)
+    button_frame.grid(row=2, column=0, columnspan=2, pady=10, sticky="ew")
 
     # 创建提交按钮
     global submit_button
@@ -265,12 +252,6 @@ def show_main_window():
     progress_bar = ctk.CTkProgressBar(button_frame, variable=progress_var, mode='indeterminate')
     progress_bar.pack(pady=10)
 
-    # 显示结果的标签
-    global result
-    result = tk.StringVar()
-    result_label = ctk.CTkLabel(button_frame, textvariable=result, wraplength=400)
-    result_label.pack(pady=10)
-
     # 全局变量用于控制动画
     global animation_running
     animation_running = False
@@ -280,6 +261,12 @@ def show_main_window():
 
     # 绑定关闭事件
     root.protocol("WM_DELETE_WINDOW", on_closing)
+
+    # 确保布局不变
+    main_frame.grid_rowconfigure(1, weight=1)
+    main_frame.grid_columnconfigure(0, weight=1)
+    main_frame.grid_columnconfigure(1, weight=1)
+    main_frame.grid_rowconfigure(2, weight=0)
 
     # 运行主循环
     root.mainloop()
