@@ -155,11 +155,34 @@ def login():
     else:
         messagebox.showerror("登录失败", "用户名或密码错误")
 
+# 验证是否输入值是正实数
+def validate_positive_float(value_if_allowed):
+    if value_if_allowed == "":
+        return True
+    try:
+        value = float(value_if_allowed)
+        return value > 0
+    except ValueError:
+        return False
+
+# 验证输入值是否是正整数
+def validate_positive_int(value_if_allowed):
+    if value_if_allowed == "":
+        return True
+    try:
+        value = int(value_if_allowed)
+        return value > 0
+    except ValueError:
+        return False
+
 def show_main_window():
     global root, progress_bar, progress_var
     root = ctk.CTk()
     root.title("干涉磨削砂轮修整软件")
     root.geometry("800x600")  # 设置固定窗口大小
+
+    vcmd_float = (root.register(validate_positive_float), "%P")
+    vcmd_int = (root.register(validate_positive_int), "%P")
 
     # 创建主框架
     main_frame = ctk.CTkFrame(root)
@@ -183,32 +206,32 @@ def show_main_window():
     tab1 = tabview.tab("参数1")
     ctk.CTkLabel(tab1, text="工件中径:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
     global entry_mid_dia
-    entry_mid_dia = ctk.CTkEntry(tab1)
+    entry_mid_dia = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
     entry_mid_dia.grid(row=0, column=1, padx=10, pady=10)
 
     ctk.CTkLabel(tab1, text="导程:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
     global entry_work_lead
-    entry_work_lead = ctk.CTkEntry(tab1)
+    entry_work_lead = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
     entry_work_lead.grid(row=1, column=1, padx=10, pady=10)
 
     ctk.CTkLabel(tab1, text="砂轮杆偏移工件中心最大距离:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
     global entry_gan_distance_max
-    entry_gan_distance_max = ctk.CTkEntry(tab1)
+    entry_gan_distance_max = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
     entry_gan_distance_max.grid(row=2, column=1, padx=10, pady=10)
 
     ctk.CTkLabel(tab1, text="砂轮杆偏移工件中心最小距离:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
     global entry_gan_distance_min
-    entry_gan_distance_min = ctk.CTkEntry(tab1)
+    entry_gan_distance_min = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
     entry_gan_distance_min.grid(row=3, column=1, padx=10, pady=10)
 
     ctk.CTkLabel(tab1, text="砂轮直径步进:").grid(row=4, column=0, padx=10, pady=10, sticky="w")
     global entry_step_dia
-    entry_step_dia = ctk.CTkEntry(tab1)
+    entry_step_dia = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
     entry_step_dia.grid(row=4, column=1, padx=10, pady=10)
 
     ctk.CTkLabel(tab1, text="砂轮安装角:").grid(row=5, column=0, padx=10, pady=10, sticky="w")
     global entry_gan_angle
-    entry_gan_angle = ctk.CTkEntry(tab1)
+    entry_gan_angle = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
     entry_gan_angle.grid(row=5, column=1, padx=10, pady=10)
 
     ctk.CTkLabel(tab1, text="dxf 文件地址:").grid(row=6, column=0, padx=10, pady=10, sticky="w")
@@ -222,12 +245,12 @@ def show_main_window():
     tab2 = tabview.tab("参数2")
     ctk.CTkLabel(tab2, text="滚轮圆弧半径:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
     global entry_dresser_r
-    entry_dresser_r = ctk.CTkEntry(tab2)
+    entry_dresser_r = ctk.CTkEntry(tab2, validate="key", validatecommand=vcmd_float)
     entry_dresser_r.grid(row=0, column=1, padx=10, pady=10)
 
     ctk.CTkLabel(tab2, text="最终曲线点密度:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
     global entry_shape_num
-    entry_shape_num = ctk.CTkEntry(tab2)
+    entry_shape_num = ctk.CTkEntry(tab2, validate="key", validatecommand=vcmd_int)
     entry_shape_num.grid(row=1, column=1, padx=10, pady=10)
 
     ctk.CTkLabel(tab2, text="输出程序路径:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
@@ -274,12 +297,13 @@ def show_main_window():
 # 优化后的登录窗口
 login_window = ctk.CTk()
 login_window.title("登录")
+login_window.geometry("400x320")  # 设置窗口大小
 
 login_frame = ctk.CTkFrame(login_window)
 login_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
 
 title_label = ctk.CTkLabel(login_frame, text="用户登录", font=("Helvetica", 16))
-title_label.pack(pady=10)
+title_label.pack(pady=(0, 20))
 
 username_label = ctk.CTkLabel(login_frame, text="用户名:")
 username_label.pack(fill=tk.X, pady=5)
@@ -292,7 +316,10 @@ password_entry = ctk.CTkEntry(login_frame, show="*")
 password_entry.pack(fill=tk.X, pady=5)
 
 login_button = ctk.CTkButton(login_frame, text="登录", command=login)
-login_button.pack(pady=10)
+login_button.pack(pady=20)
+
+# 绑定回车键事件到登录按钮
+login_window.bind("<Return>", lambda event: login())
 
 # 运行登录窗口主循环
 login_window.mainloop()
