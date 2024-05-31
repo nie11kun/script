@@ -14,9 +14,7 @@ build_exe_options = {
     ],
     "excludes": ["unittest", "email"],
     "include_files": [
-        # 在这里添加你需要的额外文件，例如数据文件或配置文件
-        # ("path/to/datafile", "datafile"),
-        # ("path/to/configfile", "configfile"),
+        "languages.json"
     ],
     "includes": [
         "pandas._libs.tslibs.np_datetime",
