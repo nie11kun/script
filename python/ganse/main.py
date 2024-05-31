@@ -215,11 +215,11 @@ def show_main_window():
     tabview = ctk.CTkTabview(tab_frame)
     tabview.pack(expand=True, fill=tk.BOTH)
 
-    tabview.add("参数1")
-    tabview.add("参数2")
+    tabview.add("基本参数")
+    tabview.add("其他")
 
     # 参数1中的控件
-    tab1 = tabview.tab("参数1")
+    tab1 = tabview.tab("基本参数")
     ctk.CTkLabel(tab1, text="工件中径:", font=FONT).grid(row=0, column=0, padx=10, pady=10, sticky="w")
     global entry_mid_dia
     entry_mid_dia = ctk.CTkEntry(tab1, validate="key", validatecommand=vcmd_float)
@@ -258,7 +258,7 @@ def show_main_window():
     select_dxf_button.grid(row=6, column=2, padx=10, pady=10)
 
     # 参数2中的控件
-    tab2 = tabview.tab("参数2")
+    tab2 = tabview.tab("其他")
     ctk.CTkLabel(tab2, text="滚轮圆弧半径:", font=FONT).grid(row=0, column=0, padx=10, pady=10, sticky="w")
     global entry_dresser_r
     entry_dresser_r = ctk.CTkEntry(tab2, validate="key", validatecommand=vcmd_float)
@@ -286,7 +286,7 @@ def show_main_window():
 
     # 创建提交按钮
     global submit_button
-    submit_button = ctk.CTkButton(button_frame, text="提交", command=on_submit, font=FONT)
+    submit_button = ctk.CTkButton(button_frame, text="生成代码", command=on_submit, font=FONT)
     submit_button.pack(pady=10)
 
     # 创建进度条
