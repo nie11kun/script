@@ -71,9 +71,10 @@ BACKUP[17]="/etc/env_addon"
 BACKUP[18]="/etc/nginx/conf.d"
 BACKUP[19]="/opt/docker/immich-app/docker-compose.yml"
 BACKUP[20]="/opt/docker/immich-app/.env"
+BACKUP[21]="/etc/systemd/system"
 
 # Number of days to store daily local backups (default 7 days)
-LOCALAGEDAILIES="3"
+LOCALAGEDAILIES="7"
 
 # Delete Googole Drive's & FTP server's remote file flag (true: delete, false: not delete)
 DELETE_REMOTE_FILE_FLG=true
