@@ -63,10 +63,18 @@ async def process_html_file(file_path: Path, session: aiohttp.ClientSession, tra
                 translation_cache[original] = translated
 
         # 替换文本内容
-        for element in elements_to_translate:
-            text = element.strip()
-            if text in translation_cache:
-                element.replace_with(translation_cache[text])
+        def clean_and_replace(element):
+            if isinstance(element, NavigableString):
+                stripped_text = element.strip()
+                if stripped_text in translation_cache:
+                    # 删除翻译结果中的换行符
+                    translated_text = translation_cache[stripped_text].replace('\n', '')
+                    element.replace_with(translated_text)
+            else:
+                for subelement in element.contents:
+                    clean_and_replace(subelement)
+        
+        clean_and_replace(soup)
 
         # 使用 BeautifulSoup 保存时规范缩进
         pretty_html = soup.prettify()
@@ -96,7 +104,9 @@ async def process_xml_file(file_path: Path, session: aiohttp.ClientSession, tran
         # 更新 title 属性值
         def update_title_attributes(element: etree.Element):
             if 'title' in element.attrib and element.attrib['title'] in translation_cache:
-                element.attrib['title'] = translation_cache[element.attrib['title']]
+                # 获取翻译结果并去掉换行符
+                translated_text = translation_cache[element.attrib['title']].replace('\n', '')
+                element.attrib['title'] = translated_text
             for child in element:
                 update_title_attributes(child)
 
@@ -124,11 +134,21 @@ async def process_txt_file(file_path: Path, session: aiohttp.ClientSession, tran
         with file_path.open("r", encoding="utf-8") as f:
             lines = f.readlines()
 
-        # 提取需要翻译的行
-        texts_to_translate = [line.strip() for line in lines if re.search(r"[\u4e00-\u9fa5]", line)]
+        # 正则表达式提取中文内容
+        def extract_text_to_translate(line: str) -> List[str]:
+            # 匹配所有的中文内容
+            return re.findall(r'[\u4e00-\u9fa5]+', line)
+        
+        # 提取所有需要翻译的文本
+        texts_to_translate = []
+        for line in lines:
+            texts_to_translate.extend(extract_text_to_translate(line))
+        
+        # 移除重复的文本，并且排除缓存中的文本
+        texts_to_translate = list(set(texts_to_translate))
+        texts_to_translate = [text for text in texts_to_translate if text not in BLACKLIST and text not in translation_cache]
 
         # 翻译文本
-        translated_lines = []
         for i in range(0, len(texts_to_translate), BATCH_SIZE):
             batch = texts_to_translate[i:i+BATCH_SIZE]
             translated_texts = await translate_text(session, batch, target_lang)
@@ -136,19 +156,23 @@ async def process_txt_file(file_path: Path, session: aiohttp.ClientSession, tran
                 translation_cache[original] = translated
 
         # 生成翻译后的内容
-        for line in lines:
-            stripped_line = line.strip()
-            if stripped_line in translation_cache:
-                translated_line = line.replace(stripped_line, translation_cache[stripped_line])
-                # 保留原有的换行符
-                translated_lines.append(translated_line)
-            else:
-                translated_lines.append(line)
+        def translate_line(line: str) -> str:
+            # 替换行中所有的中文内容
+            def replace_text(match):
+                text = match.group(0)
+                # 获取翻译结果并去掉换行符
+                translated_text = translation_cache.get(text, text).replace('\n', '')
+                return translated_text
+            
+            # 使用正则表达式匹配中文文本
+            return re.sub(r'[\u4e00-\u9fa5]+', replace_text, line)
+        
+        # 替换文本内容而不修改格式
+        translated_lines = [translate_line(line) for line in lines]
 
         # 写回翻译后的内容
         with file_path.open("w", encoding="utf-8") as f:
-            # 使用 "\n".join(translated_lines) 保证每行之间有换行符，避免多余的空行
-            f.write("".join(translated_lines).replace("\n\n", "\n"))
+            f.writelines(translated_lines)
 
         logger.info(f"处理 TXT 文件: {file_path}")
     except Exception as e:
