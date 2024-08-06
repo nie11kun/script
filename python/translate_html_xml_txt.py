@@ -12,14 +12,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 定义命令行参数
-parser = argparse.ArgumentParser(description='将中文文本翻译成指定语言的 HTML 或 XML 文件。', formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('--dir', '-d', help='包含 HTML 或 XML 文件的目录路径，包括子文件夹', required=False)
-parser.add_argument('--file', '-f', help='单个 HTML 或 XML 文件的路径', required=False)
+parser = argparse.ArgumentParser(description='将中文文本翻译成指定语言的 HTML、XML 或 TXT 文件。', formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('--dir', '-d', help='包含 HTML、XML 或 TXT 文件的目录路径，包括子文件夹', required=False)
+parser.add_argument('--file', '-f', help='单个 HTML、XML 或 TXT 文件的路径', required=False)
 parser.add_argument('--lang', '-l', help='翻译目标语言（例如 "en" 为英文，"ru" 为俄文，"fr" 为法文等）', required=True)
 args = parser.parse_args()
 
 EXT_HTML = ".html"
 EXT_XML = ".xml"
+EXT_TXT = ".txt"
 BLACKLIST = ["\ufeff", "\ufeff\n", "\n", "\r", ""]
 PROXY = "http://127.0.0.1:1082"
 BATCH_SIZE = 100  # 批量翻译的文本数量
@@ -118,6 +119,41 @@ async def process_xml_file(file_path: Path, session: aiohttp.ClientSession, tran
     except Exception as e:
         logger.error(f"处理 XML 文件 {file_path} 时出错: {e}")
 
+async def process_txt_file(file_path: Path, session: aiohttp.ClientSession, translation_cache: Dict[str, str], target_lang: str):
+    try:
+        with file_path.open("r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        # 提取需要翻译的行
+        texts_to_translate = [line.strip() for line in lines if re.search(r"[\u4e00-\u9fa5]", line)]
+
+        # 翻译文本
+        translated_lines = []
+        for i in range(0, len(texts_to_translate), BATCH_SIZE):
+            batch = texts_to_translate[i:i+BATCH_SIZE]
+            translated_texts = await translate_text(session, batch, target_lang)
+            for original, translated in zip(batch, translated_texts):
+                translation_cache[original] = translated
+
+        # 生成翻译后的内容
+        for line in lines:
+            stripped_line = line.strip()
+            if stripped_line in translation_cache:
+                translated_line = line.replace(stripped_line, translation_cache[stripped_line])
+                # 保留原有的换行符
+                translated_lines.append(translated_line)
+            else:
+                translated_lines.append(line)
+
+        # 写回翻译后的内容
+        with file_path.open("w", encoding="utf-8") as f:
+            # 使用 "\n".join(translated_lines) 保证每行之间有换行符，避免多余的空行
+            f.write("".join(translated_lines).replace("\n\n", "\n"))
+
+        logger.info(f"处理 TXT 文件: {file_path}")
+    except Exception as e:
+        logger.error(f"处理 TXT 文件 {file_path} 时出错: {e}")
+
 async def main():
     translation_cache = {}
 
@@ -129,15 +165,19 @@ async def main():
                 await process_html_file(file_path, session, translation_cache, args.lang)
             elif file_path.suffix == EXT_XML:
                 await process_xml_file(file_path, session, translation_cache, args.lang)
+            elif file_path.suffix == EXT_TXT:
+                await process_txt_file(file_path, session, translation_cache, args.lang)
             else:
-                logger.error("不支持的文件类型，请提供 .html 或 .xml 文件。")
+                logger.error("不支持的文件类型，请提供 .html、.xml 或 .txt 文件。")
         elif args.dir:
-            # 如果指定了目录，则处理目录下所有 HTML 和 XML 文件
+            # 如果指定了目录，则处理目录下所有 HTML、XML 和 TXT 文件
             dir_path = Path(args.dir)
             html_files = list(dir_path.rglob(f"*{EXT_HTML}"))
             xml_files = list(dir_path.rglob(f"*{EXT_XML}"))
+            txt_files = list(dir_path.rglob(f"*{EXT_TXT}"))
             tasks = [process_html_file(file, session, translation_cache, args.lang) for file in html_files]
             tasks.extend([process_xml_file(file, session, translation_cache, args.lang) for file in xml_files])
+            tasks.extend([process_txt_file(file, session, translation_cache, args.lang) for file in txt_files])
             await asyncio.gather(*tasks)
         else:
             logger.error("请指定目录路径 (--dir) 或单个文件路径 (--file)。")
