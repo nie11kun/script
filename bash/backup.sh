@@ -66,7 +66,8 @@ BACKUP[12]="/opt/docker/miniflux/docker-compose.yml"
 BACKUP[13]="/etc/hostname"
 BACKUP[14]="/etc/vsftpd.conf"
 BACKUP[15]="/etc/systemd/system"
-BACKUP[16]="/home/script/interferenceGrindingDressingServer.py"
+BACKUP[16]="/home/script/igd"
+BACKUP[17]="/home/script/cg"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="1"
