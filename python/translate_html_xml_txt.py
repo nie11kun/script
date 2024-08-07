@@ -25,7 +25,7 @@ BLACKLIST = ["\ufeff", "\ufeff\n", "\n", "\r", ""]
 PROXY = "http://127.0.0.1:1082"
 BATCH_SIZE = 100  # 批量翻译的文本数量
 
-async def translate_text(session: aiohttp.ClientSession, texts: List[str], target_lang: str) -> List[str]:
+async def translate_text(session: aiohttp.ClientSession, texts: List[str], target_lang: str) -> List[tuple]:
     url = "https://translate.googleapis.com/translate_a/single"
     params = {
         "client": "gtx",
@@ -37,50 +37,48 @@ async def translate_text(session: aiohttp.ClientSession, texts: List[str], targe
     try:
         async with session.get(url, params=params, proxy=PROXY) as response:
             data = await response.json()
-            return [item[0] for item in data[0]]
+            return list(zip(texts, [item[0] for item in data[0]]))
     except Exception as e:
         logger.error(f"翻译错误: {e}")
-        return texts
+        return list(zip(texts, texts))  # 出错时返回原文
 
 async def process_html_file(file_path: Path, session: aiohttp.ClientSession, translation_cache: Dict[str, str], target_lang: str):
     try:
         with file_path.open("r", encoding="utf-8") as f:
-            soup = BeautifulSoup(f, 'lxml')
+            content = f.read()
 
-        # 找到所有需要翻译的文本
-        elements_to_translate = soup.find_all(string=lambda text: isinstance(text, NavigableString) and re.search(r"[\u4e00-\u9fa5]", text))
+        # 使用正则表达式找到所有中文文本
+        chinese_pattern = re.compile(r'([\u4e00-\u9fa5]+)')
+        matches = chinese_pattern.findall(content)
 
-        texts_to_translate = []
-        for element in elements_to_translate:
-            text = element.strip()
-            if text and text not in BLACKLIST and text not in translation_cache:
-                texts_to_translate.append(text)
+        texts_to_translate = list(set(matches))
+        texts_to_translate = [text for text in texts_to_translate if text not in BLACKLIST and text not in translation_cache]
 
+        # 翻译新的文本
         for i in range(0, len(texts_to_translate), BATCH_SIZE):
             batch = texts_to_translate[i:i+BATCH_SIZE]
-            translated_texts = await translate_text(session, batch, target_lang)
-            for original, translated in zip(batch, translated_texts):
+            translations = await translate_text(session, batch, target_lang)
+            for original, translated in translations:
                 translation_cache[original] = translated
 
-        # 替换文本内容
-        def clean_and_replace(element):
-            if isinstance(element, NavigableString):
-                stripped_text = element.strip()
-                if stripped_text in translation_cache:
-                    # 删除翻译结果中的换行符
-                    translated_text = translation_cache[stripped_text].replace('\n', '')
-                    element.replace_with(translated_text)
-            else:
-                for subelement in element.contents:
-                    clean_and_replace(subelement)
-        
-        clean_and_replace(soup)
+        # 替换原文中的中文
+        def replace_chinese(match):
+            text = match.group(1)
+            return translation_cache.get(text, text).replace('\n', '')
 
-        # 使用 BeautifulSoup 保存时规范缩进
+        translated_content = chinese_pattern.sub(replace_chinese, content)
+
+        # 使用 BeautifulSoup 来格式化 HTML
+        soup = BeautifulSoup(translated_content, 'lxml')
         pretty_html = soup.prettify()
 
+        # 移除额外的空行，保持原有的缩进结构
+        lines = pretty_html.split('\n')
+        cleaned_lines = [line for line in lines if line.strip()]
+
+        # 写入文件
         with file_path.open("w", encoding="utf-8") as new_file:
-            new_file.write(pretty_html)
+            new_file.write('\n'.join(cleaned_lines))
 
         logger.info(f"处理 HTML 文件: {file_path}")
     except Exception as e:
@@ -88,42 +86,38 @@ async def process_html_file(file_path: Path, session: aiohttp.ClientSession, tra
 
 async def process_xml_file(file_path: Path, session: aiohttp.ClientSession, translation_cache: Dict[str, str], target_lang: str):
     try:
-        parser = etree.XMLParser(remove_blank_text=True)
-        tree = etree.parse(file_path, parser)
-        root = tree.getroot()
+        # 读取 XML 文件
+        with file_path.open("r", encoding="utf-8") as f:
+            content = f.read()
 
-        # 提取需要翻译的 title 属性值
-        def extract_and_translate_title_attributes(element: etree.Element) -> List[str]:
-            texts = []
-            if 'title' in element.attrib and re.search(r"[\u4e00-\u9fa5]", element.attrib['title']):
-                texts.append(element.attrib['title'].strip())
-            for child in element:
-                texts.extend(extract_and_translate_title_attributes(child))
-            return texts
+        # 使用正则表达式找到所有需要翻译的文本（包括属性值和文本内容）
+        chinese_pattern = re.compile(r'([\u4e00-\u9fa5]+)')
+        matches = chinese_pattern.findall(content)
 
-        # 更新 title 属性值
-        def update_title_attributes(element: etree.Element):
-            if 'title' in element.attrib and element.attrib['title'] in translation_cache:
-                # 获取翻译结果并去掉换行符
-                translated_text = translation_cache[element.attrib['title']].replace('\n', '')
-                element.attrib['title'] = translated_text
-            for child in element:
-                update_title_attributes(child)
+        texts_to_translate = list(set(matches))
+        texts_to_translate = [text for text in texts_to_translate if text not in BLACKLIST and text not in translation_cache]
 
-        title_texts = extract_and_translate_title_attributes(root)
-        texts_to_translate = [text for text in title_texts if text not in BLACKLIST and text not in translation_cache]
-
+        # 翻译新的文本
         for i in range(0, len(texts_to_translate), BATCH_SIZE):
             batch = texts_to_translate[i:i+BATCH_SIZE]
-            translated_texts = await translate_text(session, batch, target_lang)
-            for original, translated in zip(batch, translated_texts):
+            translations = await translate_text(session, batch, target_lang)
+            for original, translated in translations:
                 translation_cache[original] = translated
 
-        update_title_attributes(root)
+        # 替换原文中的中文
+        def replace_chinese(match):
+            text = match.group(1)
+            return translation_cache.get(text, text).replace('\n', '')
 
-        # 保存 XML 文档
-        with file_path.open('wb') as f:
-            tree.write(f, encoding='utf-8', xml_declaration=True, pretty_print=True)
+        translated_content = chinese_pattern.sub(replace_chinese, content)
+
+        # 解析翻译后的 XML
+        parser = etree.XMLParser(remove_blank_text=True)
+        root = etree.fromstring(translated_content.encode('utf-8'), parser)
+
+        # 写入文件
+        with file_path.open("wb") as f:
+            f.write(etree.tostring(root, encoding="utf-8", xml_declaration=True, pretty_print=True))
 
         logger.info(f"处理 XML 文件: {file_path}")
     except Exception as e:
@@ -131,48 +125,34 @@ async def process_xml_file(file_path: Path, session: aiohttp.ClientSession, tran
 
 async def process_txt_file(file_path: Path, session: aiohttp.ClientSession, translation_cache: Dict[str, str], target_lang: str):
     try:
+        # 读取 TXT 文件
         with file_path.open("r", encoding="utf-8") as f:
-            lines = f.readlines()
+            content = f.read()
 
-        # 正则表达式提取中文内容
-        def extract_text_to_translate(line: str) -> List[str]:
-            # 匹配所有的中文内容
-            return re.findall(r'[\u4e00-\u9fa5]+', line)
-        
-        # 提取所有需要翻译的文本
-        texts_to_translate = []
-        for line in lines:
-            texts_to_translate.extend(extract_text_to_translate(line))
-        
-        # 移除重复的文本，并且排除缓存中的文本
-        texts_to_translate = list(set(texts_to_translate))
+        # 使用正则表达式找到所有中文文本
+        chinese_pattern = re.compile(r'([\u4e00-\u9fa5]+)')
+        matches = chinese_pattern.findall(content)
+
+        texts_to_translate = list(set(matches))
         texts_to_translate = [text for text in texts_to_translate if text not in BLACKLIST and text not in translation_cache]
 
-        # 翻译文本
+        # 翻译新的文本
         for i in range(0, len(texts_to_translate), BATCH_SIZE):
             batch = texts_to_translate[i:i+BATCH_SIZE]
-            translated_texts = await translate_text(session, batch, target_lang)
-            for original, translated in zip(batch, translated_texts):
+            translations = await translate_text(session, batch, target_lang)
+            for original, translated in translations:
                 translation_cache[original] = translated
 
-        # 生成翻译后的内容
-        def translate_line(line: str) -> str:
-            # 替换行中所有的中文内容
-            def replace_text(match):
-                text = match.group(0)
-                # 获取翻译结果并去掉换行符
-                translated_text = translation_cache.get(text, text).replace('\n', '')
-                return translated_text
-            
-            # 使用正则表达式匹配中文文本
-            return re.sub(r'[\u4e00-\u9fa5]+', replace_text, line)
-        
-        # 替换文本内容而不修改格式
-        translated_lines = [translate_line(line) for line in lines]
+        # 替换原文中的中文
+        def replace_chinese(match):
+            text = match.group(1)
+            return translation_cache.get(text, text).replace('\n', '')
 
-        # 写回翻译后的内容
+        translated_content = chinese_pattern.sub(replace_chinese, content)
+
+        # 写入文件
         with file_path.open("w", encoding="utf-8") as f:
-            f.writelines(translated_lines)
+            f.write(translated_content)
 
         logger.info(f"处理 TXT 文件: {file_path}")
     except Exception as e:
