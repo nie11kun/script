@@ -15,7 +15,7 @@ def process_file(input_file, output_file):
             f.writelines(lines)
         return
 
-    pattern_msg = r'MSG\("([^"]*[\u4e00-\u9fff]+[^"]*)"\)'
+    pattern_msg = r'MSG\(".*[\u4e00-\u9fff]+.*"\)'
     new_lines = []
     
     i = 0
