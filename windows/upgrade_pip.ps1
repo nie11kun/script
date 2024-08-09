@@ -4,7 +4,7 @@ python -m pip install --upgrade pip
 
 # 获取所有已安装的包并升级
 Write-Host "Upgrading all packages..."
-$packages = pip list --outdated --format=freeze | ForEach-Object { $_.Split('==')[0] }
+$packages = pip list --outdated --format=json | ConvertFrom-Json | ForEach-Object { $_.name }
 foreach ($package in $packages) {
     Write-Host "Upgrading $package..."
     pip install --upgrade $package
