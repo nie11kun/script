@@ -37,7 +37,7 @@ MYSQL_ROOT_PASSWORD=${BACKUP_MYSQL_USER_PASSWORD}
 # If you want backup ALL databases, leave it blank.
 MYSQL_DATABASE_NAME[0]="blog"
 MYSQL_DATABASE_NAME[1]="users_igd"
-MYSQL_DATABASE_NAME[2]="user_cg"
+MYSQL_DATABASE_NAME[2]="users_cg"
 
 # Directory to store backups
 LOCALDIR="/home/backups/"
