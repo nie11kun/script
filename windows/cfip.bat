@@ -16,21 +16,14 @@ for /F "tokens=4" %%G in ('chcp') do set "_chcp=%%G"
 echo.
 echo test ip list:
 cd "C:\Users\Marco Nie\Application\CloudflareST_windows_amd64"
-".\CloudflareST.exe" -url https://nie11kun.github.io/usr/uploads/2024/03/1281212428.png -p 0 -f "C:\Users\Marco Nie\Development\VPN\IPDB\bestcf.txt" -o "bestcf.csv"
-".\CloudflareST.exe" -url https://nie11kun.github.io/usr/uploads/2024/03/1281212428.png -p 0 -f "C:\Users\Marco Nie\Development\VPN\IPDB\bestproxy.txt" -o "bestproxy.csv"
-".\CloudflareST.exe" -url https://nie11kun.github.io/usr/uploads/2024/03/1281212428.png -p 0 -f "C:\Users\Marco Nie\Development\VPN\IPDB\proxy.txt" -o "proxy.csv"
+".\CloudflareST.exe" -url https://niekun.net/cloud/media/speedtest.png -p 0 -tll 50 -tl 300 -n 1000 -o "result.csv"
 
-:: start notepad "result-google.csv"
-:: start notepad "result-amazon.csv"
+:: start notepad "result.csv"
 
 echo.
 echo finded ip:
-type "bestcf.csv"
-type "bestproxy.csv"
-type "proxy.csv"
+type "result.csv"
 
 echo.
 echo ip list can be use:
-for /f "delims=," %%a in (' type "bestcf.csv" ') do ping -n 1 %%a >nul && (echo %%a ok)
-for /f "delims=," %%a in (' type "bestproxy.csv" ') do ping -n 1 %%a >nul && (echo %%a ok)
-for /f "delims=," %%a in (' type "proxy.csv" ') do ping -n 1 %%a >nul && (echo %%a ok)
+for /f "delims=," %%a in (' type "result.csv" ') do ping -n 1 %%a >nul && (echo %%a ok)
