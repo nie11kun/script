@@ -3,16 +3,20 @@
 # Auto backup script
 #
 # Copyright (C) 2016 Teddysun <i@teddysun.com>
+# Optimized by Assistant
 #
 # URL: https://teddysun.com/469.html
 #
-# You must to modify the config before run it!!!
-# Backup MySQL/MariaDB/Percona datebases, files and directories
-# Backup file is encrypted with AES256-cbc with SHA1 message-digest (option)
-# Auto transfer backup file to Google Drive (need install gdrive command) (option)
-# Auto transfer backup file to FTP server (option)
-# Auto delete Google Drive's or FTP server's remote file (option)
+# Features:
+# - Backup MySQL/MariaDB/Percona databases, files, and directories
+# - Backup file encryption (AES256-cbc)
+# - Transfer to Google Drive (requires rclone)
+# - Transfer to FTP server (requires curl)
+# - Auto-delete old backups (local and remote)
 #
+
+# Stop on error
+set -e
 
 [[ $EUID -ne 0 ]] && echo "Error: This script must be run as root!" && exit 1
 
@@ -23,376 +27,319 @@ ENCRYPTFLG=false
 
 # WARNING: KEEP THE PASSWORD SAFE!!!
 # The password used to encrypt the backup
-# To decrypt backups made by this script, run the following command:
-# openssl enc -aes256 -in [encrypted backup] -out decrypted_backup.tgz -pass pass:[backup password] -d -md sha1
 BACKUPPASS="password"
 
-# mysql username
+# MySQL configuration
 MYSQL_ROOT_NAME=""
-
-# OPTIONAL: If you want backup MySQL database, enter the MySQL root password below
 MYSQL_ROOT_PASSWORD=""
-
-# Below is a list of MySQL database name that will be backed up
-# If you want backup ALL databases, leave it blank.
-MYSQL_DATABASE_NAME[0]=""
+# List of databases to backup (leave empty for all)
+MYSQL_DATABASE_NAME=()
 
 # Directory to store backups
 LOCALDIR="/home/backups/"
-
-# Temporary directory used during backup creation
 TEMPDIR="/home/backups/temp/"
-
-# File to log the outcome of backups
 LOGFILE="/home/backups/backup.log"
 
-# Below is a list of files and directories that will be backed up in the tar backup
-# For example:
-# File: /data/www/default/test.tgz
-# Directory: /data/www/default/test
-BACKUP[0]="/opt/docker/chinesesubfinder/docker-compose.yml"
-BACKUP[1]="/opt/docker/chinesesubfinder/config"
-BACKUP[2]="/opt/docker/jellyfin/docker-compose.yml"
-BACKUP[3]="/opt/docker/jellyfin/config/config"
-BACKUP[4]="/opt/docker/nas-tools/docker-compose.yml"
-BACKUP[5]="/opt/docker/nas-tools/config"
-BACKUP[6]="/opt/docker/qinglong/docker-compose.yml"
-BACKUP[7]="/opt/docker/qinglong/data"
-BACKUP[8]="/opt/docker/study_xxqg/docker-compose.yml"
-BACKUP[9]="/opt/docker/study_xxqg/config"
-BACKUP[10]="/opt/aria2/aria2.conf"
-BACKUP[11]="/opt/frp/frpc.toml"
-BACKUP[12]="/etc/crontab"
-BACKUP[13]="/usr/lib/systemd/system"
-BACKUP[14]="/root/.bashrc"
-BACKUP[15]="/etc/hostname"
-BACKUP[16]="/etc/vsftpd.conf"
-BACKUP[17]="/etc/env_addon"
-BACKUP[18]="/etc/nginx/conf.d"
-BACKUP[19]="/opt/docker/immich-app/docker-compose.yml"
-BACKUP[20]="/opt/docker/immich-app/.env"
-BACKUP[21]="/opt/docker/pixman/docker-compose.yml"
-BACKUP[22]="/etc/systemd/system"
+# Backup List
+BACKUP=(
+    "/opt/docker/chinesesubfinder/docker-compose.yml"
+    "/opt/docker/chinesesubfinder/config"
+    "/opt/docker/jellyfin/docker-compose.yml"
+    "/opt/docker/jellyfin/config/config"
+    "/opt/docker/nas-tools/docker-compose.yml"
+    "/opt/docker/nas-tools/config"
+    "/opt/docker/qinglong/docker-compose.yml"
+    "/opt/docker/qinglong/data"
+    "/opt/docker/study_xxqg/docker-compose.yml"
+    "/opt/docker/study_xxqg/config"
+    "/opt/aria2/aria2.conf"
+    "/opt/frp/frpc.toml"
+    "/etc/crontab"
+    "/usr/lib/systemd/system"
+    "/root/.bashrc"
+    "/etc/hostname"
+    "/etc/vsftpd.conf"
+    "/etc/env_addon"
+    "/etc/nginx/conf.d"
+    "/opt/docker/immich-app/docker-compose.yml"
+    "/opt/docker/immich-app/.env"
+    "/opt/docker/pixman/docker-compose.yml"
+    "/etc/systemd/system"
+)
 
-# Number of days to store daily local backups (default 7 days)
+# Days to keep local backups
 LOCALAGEDAILIES="7"
 
-# Delete Googole Drive's & FTP server's remote file flag (true: delete, false: not delete)
+# Remote deletion flag
 DELETE_REMOTE_FILE_FLG=true
 
-# Upload to google drive flag (true: upload, false: not upload)
+# Google Drive (Rclone)
 RCLONE_FLG=false
-
-# Rclone remote name
 RCLONE_NAME=""
-
-# Rclone remote folder name (default "")
 RCLONE_FOLDER=""
 
-# Upload to FTP server flag (true: upload, false: not upload)
+# FTP Server
 FTP_FLG=true
-
-# FTP server
-# OPTIONAL: If you want upload to FTP server, enter the Hostname or IP address below
-FTP_HOST=${ftp_host}
-
-# FTP username
-# OPTIONAL: If you want upload to FTP server, enter the FTP username below
-FTP_USER=${ftp_user}
-
-# FTP password
-# OPTIONAL: If you want upload to FTP server, enter the username's password below
-FTP_PASS=${ftp_passwd}
-
-# FTP server remote folder
-# OPTIONAL: If you want upload to FTP server, enter the FTP remote folder below
-# For example: public_html
+FTP_HOST="${ftp_host}"
+FTP_USER="${ftp_user}"
+FTP_PASS="${ftp_passwd}"
 FTP_DIR="UbuntuBackUp"
 
 ########## END OF CONFIG ##########
 
-
-
-# Date & Time
-DAY=$(date +%d)
-MONTH=$(date +%m)
-YEAR=$(date +%C%y)
+# Date & Time variables
 BACKUPDATE=$(date +%Y%m%d%H%M%S)
-# Backup file name
-TARFILE="${LOCALDIR}""$(hostname)"_"${BACKUPDATE}".tgz
-# Encrypted backup file name
+HOSTNAME_FULL=$(hostname)
+
+# File names
+TARFILE="${LOCALDIR}${HOSTNAME_FULL}_${BACKUPDATE}.tgz"
 ENC_TARFILE="${TARFILE}.enc"
-# Backup MySQL dump file name
 SQLFILE="${TEMPDIR}mysql_${BACKUPDATE}.sql"
 
 log() {
-#    echo "$(date "+%Y-%m-%d %H:%M:%S")" "$1"
-    echo -e "$(date "+%Y-%m-%d %H:%M:%S")" "$1" >> ${LOGFILE}
+    echo -e "$(date "+%Y-%m-%d %H:%M:%S") $1" >> "${LOGFILE}"
 }
 
-# Check for list of mandatory binaries
 check_commands() {
-    # This section checks for all of the binaries used in the backup
-    BINARIES=( cat cd du date dirname echo openssl mysql mysqldump pwd rm tar )
-    
-    # Iterate over the list of binaries, and if one isn't found, abort
+    local BINARIES=( cat cd du date dirname echo openssl mysql mysqldump pwd rm tar find )
     for BINARY in "${BINARIES[@]}"; do
-        if [ ! "$(command -v "$BINARY")" ]; then
-            log "$BINARY is not installed. Install it and try again"
+        if ! command -v "$BINARY" >/dev/null 2>&1; then
+            log "ERROR: $BINARY is not installed. Install it and try again."
             exit 1
         fi
     done
 
-    # check gdrive command
-    RCLONE_COMMAND=false
-    if [ "$(command -v "rclone")" ]; then
-        RCLONE_COMMAND=true
+    # Check rclone
+    RCLONE_AVAILABLE=false
+    if command -v "rclone" >/dev/null 2>&1; then
+        RCLONE_AVAILABLE=true
     fi
 
-    # check ftp command
+    # Check curl for FTP
     if ${FTP_FLG}; then
-        if [ ! "$(command -v "ftp")" ]; then
-            log "ftp is not installed. Install it and try again"
+        if ! command -v "curl" >/dev/null 2>&1; then
+            log "ERROR: curl is not installed. Install it and try again for FTP support."
             exit 1
         fi
     fi
 }
 
-calculate_size() {
-    local file_name=$1
-    local file_size=$(du -h $file_name 2>/dev/null | awk '{print $1}')
-    if [ "x${file_size}" = "x" ]; then
-        echo "unknown"
-    else
-        echo "${file_size}"
-    fi
-}
-
-# Backup MySQL databases
 mysql_backup() {
-    if [ -z ${MYSQL_ROOT_PASSWORD} ]; then
-        log "MySQL root password not set, MySQL backup skipped"
-    else
-        log "MySQL dump start"
-        mysql -u ${MYSQL_ROOT_NAME} -p${MYSQL_ROOT_PASSWORD} 2>/dev/null <<EOF
-exit
-EOF
-        if [ $? -ne 0 ]; then
-            log "MySQL root password is incorrect. Please check it and try again"
-            exit 1
-        fi
-    
-        if [ "${MYSQL_DATABASE_NAME[*]}" == "" ]; then
-            mysqldump -u ${MYSQL_ROOT_NAME} -p${MYSQL_ROOT_PASSWORD} --all-databases > "${SQLFILE}" 2>/dev/null
-            if [ $? -ne 0 ]; then
-                log "MySQL all databases backup failed"
-                exit 1
-            fi
-            log "MySQL all databases dump file name: ${SQLFILE}"
-            #Add MySQL backup dump file to BACKUP list
-            BACKUP=(${BACKUP[*]} ${SQLFILE})
-        else
-            for db in ${MYSQL_DATABASE_NAME[*]}
-            do
-                unset DBFILE
-                DBFILE="${TEMPDIR}${db}_${BACKUPDATE}.sql"
-                mysqldump -u ${MYSQL_ROOT_NAME} -p${MYSQL_ROOT_PASSWORD} ${db} > "${DBFILE}" 2>/dev/null
-                if [ $? -ne 0 ]; then
-                    log "MySQL database name [${db}] backup failed, please check database name is correct and try again"
-                    exit 1
-                fi
-                log "MySQL database name [${db}] dump file name: ${DBFILE}"
-                #Add MySQL backup dump file to BACKUP list
-                BACKUP=(${BACKUP[*]} ${DBFILE})
-            done
-        fi
-        log "MySQL dump completed"
+    if [ -z "${MYSQL_ROOT_PASSWORD}" ]; then
+        log "MySQL root password not set, skipping MySQL backup."
+        return
     fi
-}
-
-start_backup() {
-    [ "${BACKUP[*]}" == "" ] && echo "Error: You must to modify the [$(basename $0)] config before run it!" && exit 1
-
-    log "Tar backup file start"
-    tar -zcPf ${TARFILE} ${BACKUP[*]}
-    if [ $? -gt 1 ]; then
-        log "Tar backup file failed"
+    
+    log "MySQL dump start"
+    
+    # Test connection
+    if ! mysql -u "${MYSQL_ROOT_NAME}" -p"${MYSQL_ROOT_PASSWORD}" -e "exit" 2>/dev/null; then
+        log "ERROR: MySQL root password incorrect."
         exit 1
     fi
-    log "Tar backup file completed"
 
-    # Encrypt tar file
-    if ${ENCRYPTFLG}; then
-        log "Encrypt backup file start"
-        openssl enc -aes-256-cbc -md sha512 -pbkdf2 -pass pass:${BACKUPPASS} -in "${TARFILE}" -out "${ENC_TARFILE}"
-        log "Encrypt backup file completed"
-
-        # Delete unencrypted tar
-        log "Delete unencrypted tar file: ${TARFILE}"
-        rm -f ${TARFILE}
-    fi
-
-    # Delete MySQL temporary dump file
-    for sql in `ls ${TEMPDIR}*.sql`
-    do
-        log "Delete MySQL temporary dump file: ${sql}"
-        rm -f ${sql}
-    done
-
-    if ${ENCRYPTFLG}; then
-        OUT_FILE="${ENC_TARFILE}"
+    if [ ${#MYSQL_DATABASE_NAME[@]} -eq 0 ]; then
+        mysqldump -u "${MYSQL_ROOT_NAME}" -p"${MYSQL_ROOT_PASSWORD}" --all-databases > "${SQLFILE}" 2>/dev/null
+        log "MySQL all databases dump: ${SQLFILE}"
+        BACKUP+=("${SQLFILE}")
     else
-        OUT_FILE="${TARFILE}"
+        for db in "${MYSQL_DATABASE_NAME[@]}"; do
+            DBFILE="${TEMPDIR}${db}_${BACKUPDATE}.sql"
+            mysqldump -u "${MYSQL_ROOT_NAME}" -p"${MYSQL_ROOT_PASSWORD}" "${db}" > "${DBFILE}" 2>/dev/null
+            log "MySQL database [${db}] dump: ${DBFILE}"
+            BACKUP+=("${DBFILE}")
+        done
     fi
-    log "File name: ${OUT_FILE}, File size: `calculate_size ${OUT_FILE}`"
+    log "MySQL dump completed"
 }
 
-# Transfer backup file to Google Drive
+create_backup_archive() {
+    local FINAL_FILE
+
+    [ ${#BACKUP[@]} -eq 0 ] && log "ERROR: No files to backup." && exit 1
+
+    log "Creating tar archive..."
+    # Use -P (absolute names) and keep existing logic
+    if ! tar -zcPf "${TARFILE}" "${BACKUP[@]}"; then
+        log "ERROR: Tar backup failed."
+        exit 1
+    fi
+    log "Tar backup completed: ${TARFILE}"
+
+    if ${ENCRYPTFLG}; then
+        log "Encrypting backup..."
+        openssl enc -aes-256-cbc -md sha512 -pbkdf2 -pass "pass:${BACKUPPASS}" -in "${TARFILE}" -out "${ENC_TARFILE}"
+        log "Encryption completed: ${ENC_TARFILE}"
+        
+        rm -f "${TARFILE}"
+        FINAL_FILE="${ENC_TARFILE}"
+    else
+        FINAL_FILE="${TARFILE}"
+    fi
+
+    # Cleanup temp SQL files
+    rm -f "${TEMPDIR}"/*.sql 2>/dev/null || true
+
+    # Export for upload functions
+    export UPLOAD_FILE="${FINAL_FILE}"
+    local SIZE
+    SIZE=$(du -h "${UPLOAD_FILE}" | awk '{print $1}')
+    log "Backup ready: ${UPLOAD_FILE} (Size: ${SIZE})"
+}
+
 rclone_upload() {
-    if ${RCLONE_FLG} && ${RCLONE_COMMAND}; then
-        [ -z "${RCLONE_NAME}" ] && log "Error: RCLONE_NAME can not be empty!" && return 1
+    if ${RCLONE_FLG} && ${RCLONE_AVAILABLE}; then
+        [ -z "${RCLONE_NAME}" ] && log "ERROR: RCLONE_NAME empty." && return 1
+        
+        log "Uploading to Google Drive: ${RCLONE_NAME}:${RCLONE_FOLDER}"
+        
+        # Ensure directory exists (mkdir is idempotent in rclone usually, but nice to be explicit if needed)
         if [ -n "${RCLONE_FOLDER}" ]; then
-            rclone ls ${RCLONE_NAME}:${RCLONE_FOLDER} 2>&1 > /dev/null
-            if [ $? -ne 0 ]; then
-                log "Create the path ${RCLONE_NAME}:${RCLONE_FOLDER}"
-                rclone mkdir ${RCLONE_NAME}:${RCLONE_FOLDER}
-            fi
+            rclone mkdir "${RCLONE_NAME}:${RCLONE_FOLDER}" >/dev/null 2>&1 || true
         fi
-        log "Tranferring backup file: ${OUT_FILE} to Google Drive"
-        rclone copy ${OUT_FILE} ${RCLONE_NAME}:${RCLONE_FOLDER} >> ${LOGFILE}
-        if [ $? -ne 0 ]; then
-            log "Error: Tranferring backup file: ${OUT_FILE} to Google Drive failed"
-            return 1
+        
+        if rclone copy "${UPLOAD_FILE}" "${RCLONE_NAME}:${RCLONE_FOLDER}" >> "${LOGFILE}" 2>&1; then
+             log "Google Drive upload success."
+        else
+             log "ERROR: Google Drive upload failed."
+             return 1
         fi
-        log "Tranferring backup file: ${OUT_FILE} to Google Drive completed"
     fi
 }
 
-# Tranferring backup file to FTP server
 ftp_upload() {
     if ${FTP_FLG}; then
-        [ -z "${FTP_HOST}" ] && log "Error: FTP_HOST can not be empty!" && return 1
-        [ -z "${FTP_USER}" ] && log "Error: FTP_USER can not be empty!" && return 1
-        [ -z "${FTP_PASS}" ] && log "Error: FTP_PASS can not be empty!" && return 1
-        [ -z "${FTP_DIR}" ] && log "Error: FTP_DIR can not be empty!" && return 1
-        local FTP_OUT_FILE=$(basename ${OUT_FILE})
-        log "Tranferring backup file: ${FTP_OUT_FILE} to FTP server"
-        ftp -in ${FTP_HOST} 2>&1 >> ${LOGFILE} <<EOF
-user $FTP_USER $FTP_PASS
-binary
-lcd $LOCALDIR
-cd $FTP_DIR
-put $FTP_OUT_FILE
-quit
-EOF
-        if [ $? -ne 0 ]; then
-            log "Error: Tranferring backup file: ${FTP_OUT_FILE} to FTP server failed"
+        log "Uploading to FTP: ftps://${FTP_HOST}/${FTP_DIR}"
+        
+        # Use curl for upload. --ftp-create-dirs handles the directory creation.
+        # -T uploads the file.
+        # -u user:pass
+        # -k (insecure) if you use strict SSL/TLS certificates and they are self-signed, 
+        # but standard ftp often doesn't need it. 
+        # Using ftp:// scheme.
+        
+        local FILENAME
+        FILENAME=$(basename "${UPLOAD_FILE}")
+        
+        if curl --fail --silent --show-error --ftp-create-dirs \
+             -T "${UPLOAD_FILE}" \
+             -u "${FTP_USER}:${FTP_PASS}" \
+             "ftp://${FTP_HOST}/${FTP_DIR}/"; then
+            log "FTP upload success."
+        else
+            log "ERROR: FTP upload failed."
             return 1
         fi
-        log "Tranferring backup file: ${FTP_OUT_FILE} to FTP server completed"
     fi
 }
 
-# Get file date
-get_file_date() {
-    #Approximate a 30-day month and 365-day year
-    DAYS=$(( $((10#${YEAR}*365)) + $((10#${MONTH}*30)) + $((10#${DAY})) ))
+# Legacy logic support for remote cleanup based on filename date parsing
+get_file_date_legacy() {
+    local fname=$1
+    # Filename format: hostname_YYYYMMDDHHMMSS.tgz
+    # Parsing date from format
+    local date_part
+    date_part=$(echo "$fname" | grep -oE '[0-9]{14}' | head -1)
 
-    unset FILEYEAR FILEMONTH FILEDAY FILEDAYS FILEAGE
-    FILEYEAR=$(echo "$1" | cut -d_ -f2 | cut -c 1-4)
-    FILEMONTH=$(echo "$1" | cut -d_ -f2 | cut -c 5-6)
-    FILEDAY=$(echo "$1" | cut -d_ -f2 | cut -c 7-8)
-
-    if [[ "${FILEYEAR}" && "${FILEMONTH}" && "${FILEDAY}" ]]; then
-        #Approximate a 30-day month and 365-day year
-        FILEDAYS=$(( $((10#${FILEYEAR}*365)) + $((10#${FILEMONTH}*30)) + $((10#${FILEDAY})) ))
-        FILEAGE=$(( 10#${DAYS} - 10#${FILEDAYS} ))
-        return 0
+    if [ -z "$date_part" ]; then
+        return 1
     fi
-
-    return 1
-}
-
-# Delete Google Drive's old backup file
-delete_gdrive_file() {
-    local FILENAME=$1
-    if ${DELETE_REMOTE_FILE_FLG} && ${RCLONE_COMMAND}; then
-        rclone ls ${RCLONE_NAME}:${RCLONE_FOLDER}/${FILENAME} 2>&1 > /dev/null
-        if [ $? -eq 0 ]; then
-            rclone delete ${RCLONE_NAME}:${RCLONE_FOLDER}/${FILENAME} >> ${LOGFILE}
-            if [ $? -eq 0 ]; then
-                log "Google Drive's old backup file: ${FILENAME} has been deleted"
-            else
-                log "Failed to delete Google Drive's old backup file: ${FILENAME}"
-            fi
-        else
-            log "Google Drive's old backup file: ${FILENAME} is not exist"
-        fi
-    fi
-}
-
-# Delete FTP server's old backup file
-delete_ftp_file() {
-    local FILENAME=$1
-    if ${DELETE_REMOTE_FILE_FLG} && ${FTP_FLG}; then
-        ftp -in ${FTP_HOST} 2>&1 >> ${LOGFILE} <<EOF
-user $FTP_USER $FTP_PASS
-cd $FTP_DIR
-del $FILENAME
-quit
-EOF
-        if [ $? -eq 0 ]; then
-            log "FTP server's old backup file name: ${FILENAME} has been deleted"
-        else
-            log "Failed to delete FTP server's old backup file: ${FILENAME}"
-        fi
-    fi
-}
-
-# Clean up old file
-clean_up_files() {
-    cd ${LOCALDIR} || exit
-
-    if ${ENCRYPTFLG}; then
-        LS=($(ls *.enc))
+    
+    local file_ts
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS date
+        file_ts=$(date -j -f "%Y%m%d%H%M%S" "$date_part" +%s 2>/dev/null)
     else
-        LS=($(ls *.tgz))
+        # Linux date
+        file_ts=$(date -d "${date_part:0:8} ${date_part:8:2}:${date_part:10:2}:${date_part:12:2}" +%s 2>/dev/null)
     fi
-    for f in ${LS[@]}; do
-        get_file_date ${f}
-        if [ $? -eq 0 ]; then
-            if [[ ${FILEAGE} -gt ${LOCALAGEDAILIES} ]]; then
-                rm -f ${f}
-                log "Old backup file name: ${f} has been deleted"
-                delete_gdrive_file ${f}
-                delete_ftp_file ${f}
-            fi
-        fi
+
+    if [ -z "$file_ts" ]; then
+        return 1
+    fi
+
+    local current_ts
+    current_ts=$(date +%s)
+    local diff=$(( (current_ts - file_ts) / 86400 ))
+
+    if [ "$diff" -gt "$LOCALAGEDAILIES" ]; then
+        return 0 # True, it is old
+    else
+        return 1 # False, it is not old
+    fi
+}
+
+clean_local_files() {
+    cd "${LOCALDIR}" || exit
+    log "Cleaning up local files older than ${LOCALAGEDAILIES} days..."
+    
+    # Modern find command
+    # Looks for .tgz or .enc files older than N days
+    find "${LOCALDIR}" -maxdepth 1 \( -name "*.tgz" -o -name "*.enc" \) -type f -mtime +"${LOCALAGEDAILIES}" -print -delete | while read -r file; do
+        log "Deleted local old backup: $file"
     done
 }
 
-# Main progress
+clean_remote_files() {
+    if ! ${DELETE_REMOTE_FILE_FLG}; then return; fi
+
+    # Rclone Cleanup
+    if ${RCLONE_FLG} && ${RCLONE_AVAILABLE}; then
+        # List files, filter by regex for backup format, check date
+        # This is expensive, so we only try if we really want to supported it.
+        # The original script deleted the specific file that was locally deleted.
+        # We will iterate remote files and check dates since we are now decoupled.
+        
+        log "Checking Google Drive for old files..."
+        # Get list of files
+        rclone lsf "${RCLONE_NAME}:${RCLONE_FOLDER}" | while read -r remote_file; do
+            if get_file_date_legacy "$remote_file"; then
+                 log "Deleting old Drive file: $remote_file"
+                 rclone delete "${RCLONE_NAME}:${RCLONE_FOLDER}/$remote_file"
+            fi
+        done
+    fi
+
+    # FTP Cleanup
+    if ${FTP_FLG}; then
+        log "Checking FTP for old files..."
+        # List files using curl
+        # curl -l lists filenames only
+        local ftp_files
+        ftp_files=$(curl --silent --list-only -u "${FTP_USER}:${FTP_PASS}" "ftp://${FTP_HOST}/${FTP_DIR}/" || true)
+        
+        for remote_file in $ftp_files; do
+            if get_file_date_legacy "$remote_file"; then
+                 log "Deleting old FTP file: $remote_file"
+                 # Delete using curl -Q (quote command)
+                 curl --silent -u "${FTP_USER}:${FTP_PASS}" "ftp://${FTP_HOST}/${FTP_DIR}/" -Q "DELE $remote_file" || log "Failed to delete $remote_file"
+            fi
+        done
+    fi
+}
+
+
+# Main Execution
 STARTTIME=$(date +%s)
 
-# Check if the backup folders exist and are writeable
-[ ! -d "${LOCALDIR}" ] && mkdir -p ${LOCALDIR}
-[ ! -d "${TEMPDIR}" ] && mkdir -p ${TEMPDIR}
+[ ! -d "${LOCALDIR}" ] && mkdir -p "${LOCALDIR}"
+[ ! -d "${TEMPDIR}" ] && mkdir -p "${TEMPDIR}"
 
-log "Backup progress start"
+log "=== Backup Job Started ==="
+
 check_commands
 mysql_backup
-start_backup
-log "Backup progress complete"
+create_backup_archive
 
-log "Upload progress start"
+log "=== Uploading ==="
 rclone_upload
 ftp_upload
-log "Upload progress complete"
 
-log "Cleaning up"
-clean_up_files
+log "=== Cleanup ==="
+clean_local_files
+clean_remote_files
 
 ENDTIME=$(date +%s)
 DURATION=$((ENDTIME - STARTTIME))
-log "All done"
-log "Backup and transfer completed in ${DURATION} seconds"
+log "=== All Done (Duration: ${DURATION}s) ==="
+
