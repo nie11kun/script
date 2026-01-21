@@ -83,7 +83,7 @@ FTP_FLG=true
 FTP_HOST="${ftp_host}"
 FTP_USER="${ftp_user}"
 FTP_PASS="${ftp_passwd}"
-FTP_DIR="UbuntuBackUp"
+FTP_DIR="nas-backup/UbuntuBackUp"
 
 ########## END OF CONFIG ##########
 
