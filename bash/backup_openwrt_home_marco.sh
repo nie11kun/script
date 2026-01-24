@@ -20,7 +20,7 @@ FTP_DIR="nas-backup/OpenwrtBackup"    # Remote directory on FTP server
 LOCAL_BACKUP_DIR="/tmp/openwrt_backups"
 LOGFILE="/home/backups/backup_openwrt.log"
 DATE_STR=$(date +%Y%m%d%H%M%S)
-BACKUP_FILENAME="backup-${HOSTNAME}-${DATE_STR}.tar.gz"
+BACKUP_FILENAME="backup-openwrt-${DATE_STR}.tar.gz"
 REMOTE_TEMP_PATH="/tmp/${BACKUP_FILENAME}"
 
 # Ensure local backup directory exists
