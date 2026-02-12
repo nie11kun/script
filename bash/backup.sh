@@ -71,6 +71,7 @@ BACKUP[15]="/etc/systemd/system"
 BACKUP[16]="/home/script/igd/app.log"
 BACKUP[17]="/home/script/cg/app.log"
 BACKUP[18]="/home/script/eg/app.log"
+BACKUP[19]="/etc/netplan/01-netcfg.yaml"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="1"
