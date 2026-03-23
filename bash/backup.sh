@@ -72,6 +72,8 @@ BACKUP[16]="/home/script/igd/app.log"
 BACKUP[17]="/home/script/cg/app.log"
 BACKUP[18]="/home/script/eg/app.log"
 BACKUP[19]="/etc/netplan/01-netcfg.yaml"
+BACKUP[20]="/home/www/lovestory/data.json"
+BACKUP[21]="/home/www/lovestory/uploads"
 
 # Number of days to store daily local backups (default 7 days)
 LOCALAGEDAILIES="1"
