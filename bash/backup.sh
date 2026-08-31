@@ -1,57 +1,49 @@
 #!/usr/bin/env bash
-#
-# Auto backup script
-#
-# Copyright (C) 2016 Teddysun <i@teddysun.com>
-#
-# URL: https://teddysun.com/469.html
-#
-# You must to modify the config before run it!!!
-# Backup MySQL/MariaDB/Percona datebases, files and directories
-# Backup file is encrypted with AES256-cbc with SHA1 message-digest (option)
-# Auto transfer backup file to Google Drive (need install gdrive command) (option)
-# Auto transfer backup file to FTP server (option)
-# Auto delete Google Drive's or FTP server's remote file (option)
-#
+# ==============================================================================
+# 脚本名称: backup.sh
+# 脚本说明: Linux 服务器通用自动化备份脚本（支持 MySQL、文件目录打包、AES-256 加密及多端异地同步）
+# 参考来源: Teddysun <i@teddysun.com> (https://teddysun.com/469.html)
+# 功能特性:
+#   1. 支持备份 MySQL 数据库（指定数据库或全量导出）
+#   2. 支持备份网站目录、Nginx、FRP、系统服务与环境配置
+#   3. 支持 OpenSSL AES-256-CBC 密码加密
+#   4. 支持 Google Drive (通过 Rclone) 与远程 FTP 服务器上传
+#   5. 智能本地旧备份自动删除（基于 find -mtime，兼容各类主机名）与远端同步清理
+#   6. Exit Trap 安全退出保障：异常退出时清理临时 SQL 并保障本地旧备份清理
+# ==============================================================================
 
+# 检查执行权限（必须为 root 用户）
 [[ $EUID -ne 0 ]] && echo "Error: This script must be run as root!" && exit 1
 
-########## START OF CONFIG ##########
+# ==============================================================================
+# 配置区域 (START OF CONFIG)
+# ==============================================================================
 
-# Encrypt flag (true: encrypt, false: not encrypt)
+# --- 加密设置 ---
+# 是否加密备份文件 (true: 加密, false: 不加密)
 ENCRYPTFLG=true
 
-# WARNING: KEEP THE PASSWORD SAFE!!!
-# The password used to encrypt the backup
-# To decrypt backups made by this script, run the following command:
-# openssl enc -aes256 -in [encrypted backup] -out decrypted_backup.tgz -pass pass:[backup password] -d -md sha1
+# 备份加密密码（建议通过环境变量 BACKUP_ENCRYPT_PASSWORD 传入）
+# 解密命令示例:
+# openssl enc -aes-256-cbc -md sha512 -pbkdf2 -d -in [加密备份.enc] -out [解密备份.tgz] -pass pass:[备份密码]
 BACKUPPASS=${BACKUP_ENCRYPT_PASSWORD}
 
-# mysql username
-MYSQL_ROOT_NAME=${BACKUP_MYSQL_USER_NAME}
+# --- MySQL 数据库配置 ---
+MYSQL_ROOT_NAME=${BACKUP_MYSQL_USER_NAME}          # MySQL 用户名
+MYSQL_ROOT_PASSWORD=${BACKUP_MYSQL_USER_PASSWORD}  # MySQL 密码（留空则跳过 MySQL 备份）
 
-# OPTIONAL: If you want backup MySQL database, enter the MySQL root password below
-MYSQL_ROOT_PASSWORD=${BACKUP_MYSQL_USER_PASSWORD}
-
-# Below is a list of MySQL database name that will be backed up
-# If you want backup ALL databases, leave it blank.
+# 需要备份的 MySQL 数据库列表（如果需要备份所有数据库，请将数组置空）
 MYSQL_DATABASE_NAME[0]="blog"
 MYSQL_DATABASE_NAME[1]="users_igd"
 MYSQL_DATABASE_NAME[2]="users_cg"
 
-# Directory to store backups
-LOCALDIR="/home/backups/"
+# --- 存储路径与日志 ---
+LOCALDIR="/home/backups/"                           # 本地备份归档存储目录
+TEMPDIR="/home/backups/temp/"                       # 临时工作目录（存放临时 SQL 转储）
+LOGFILE="/home/backups/backup.log"                  # 备份日志记录路径
 
-# Temporary directory used during backup creation
-TEMPDIR="/home/backups/temp/"
-
-# File to log the outcome of backups
-LOGFILE="/home/backups/backup.log"
-
-# Below is a list of files and directories that will be backed up in the tar backup
-# For example:
-# File: /data/www/default/test.tgz
-# Directory: /data/www/default/test
+# --- 备份文件与目录清单 ---
+# 包含网站根目录、Nginx 配置、FRP 配置、Systemd 服务、Crontab、环境变量及 Docker 配置等
 BACKUP[0]="/home/www/blog/usr"
 BACKUP[1]="/opt/nginx/conf"
 BACKUP[2]="/opt/nginx/niekun.net"
@@ -76,68 +68,50 @@ BACKUP[20]="/home/www/lovestory/data.json"
 BACKUP[21]="/home/www/lovestory/uploads"
 BACKUP[22]="/home/www/lovestory/.env"
 
-# Number of days to store daily local backups (default 7 days)
-LOCALAGEDAILIES="1"
+# --- 保留天数与清理策略 ---
+LOCALAGEDAILIES="1"                                 # 本地每日备份保留天数（超过该天数的旧备份将被删除）
+DELETE_REMOTE_FILE_FLG=true                         # 是否同步删除 Google Drive 或 FTP 上的过期备份 (true/false)
 
-# Delete Googole Drive's & FTP server's remote file flag (true: delete, false: not delete)
-DELETE_REMOTE_FILE_FLG=true
+# --- Google Drive (Rclone) 配置 ---
+RCLONE_FLG=true                                     # 是否上传到 Google Drive (true: 上传, false: 不上传)
+RCLONE_NAME="remote"                                # Rclone 远端配置名称
+RCLONE_FOLDER="BandwagonBackup"                     # Google Drive 远端保存文件夹
 
-# Upload to google drive flag (true: upload, false: not upload)
-RCLONE_FLG=true
+# --- FTP 服务器配置 ---
+FTP_FLG=false                                       # 是否上传到 FTP 服务器 (true: 上传, false: 不上传)
+FTP_HOST=""                                         # FTP 服务器 IP 或域名
+FTP_USER=""                                         # FTP 登录用户名
+FTP_PASS=""                                         # FTP 登录密码
+FTP_DIR=""                                          # FTP 远程存放目录（例如: public_html）
 
-# Rclone remote name
-RCLONE_NAME="remote"
+# ==============================================================================
+# 配置区域结束 (END OF CONFIG)
+# ==============================================================================
 
-# Rclone remote folder name (default "")
-RCLONE_FOLDER="BandwagonBackup"
-
-# Upload to FTP server flag (true: upload, false: not upload)
-FTP_FLG=false
-
-# FTP server
-# OPTIONAL: If you want upload to FTP server, enter the Hostname or IP address below
-FTP_HOST=""
-
-# FTP username
-# OPTIONAL: If you want upload to FTP server, enter the FTP username below
-FTP_USER=""
-
-# FTP password
-# OPTIONAL: If you want upload to FTP server, enter the username's password below
-FTP_PASS=""
-
-# FTP server remote folder
-# OPTIONAL: If you want upload to FTP server, enter the FTP remote folder below
-# For example: public_html
-FTP_DIR=""
-
-########## END OF CONFIG ##########
-
-
-
-# Date & Time
+# 日期与时间变量
 DAY=$(date +%d)
 MONTH=$(date +%m)
 YEAR=$(date +%C%y)
 BACKUPDATE=$(date +%Y%m%d%H%M%S)
-# Backup file name
+
+# 目标归档文件名
 TARFILE="${LOCALDIR}""$(hostname)"_"${BACKUPDATE}".tgz
-# Encrypted backup file name
 ENC_TARFILE="${TARFILE}.enc"
-# Backup MySQL dump file name
 SQLFILE="${TEMPDIR}mysql_${BACKUPDATE}.sql"
 
+# ------------------------------------------------------------------------------
+# 日志记录函数
+# ------------------------------------------------------------------------------
 log() {
-#    echo "$(date "+%Y-%m-%d %H:%M:%S")" "$1"
     echo -e "$(date "+%Y-%m-%d %H:%M:%S")" "$1" >> ${LOGFILE}
 }
 
-# Check for list of mandatory binaries
+# ------------------------------------------------------------------------------
+# 检查所需命令行工具依赖是否齐全
+# ------------------------------------------------------------------------------
 check_commands() {
-    # This section checks for all of the binaries used in the backup
-    BINARIES=( cat cd du date dirname echo openssl mysql mysqldump pwd rm tar )
+    BINARIES=( cat cd du date dirname echo openssl mysql mysqldump pwd rm tar find )
     
-    # Iterate over the list of binaries, and if one isn't found, abort
     for BINARY in "${BINARIES[@]}"; do
         if [ ! "$(command -v "$BINARY")" ]; then
             log "$BINARY is not installed. Install it and try again"
@@ -145,13 +119,13 @@ check_commands() {
         fi
     done
 
-    # check gdrive command
+    # 检查 Rclone
     RCLONE_COMMAND=false
     if [ "$(command -v "rclone")" ]; then
         RCLONE_COMMAND=true
     fi
 
-    # check ftp command
+    # 检查 FTP 工具
     if ${FTP_FLG}; then
         if [ ! "$(command -v "ftp")" ]; then
             log "ftp is not installed. Install it and try again"
@@ -160,6 +134,9 @@ check_commands() {
     fi
 }
 
+# ------------------------------------------------------------------------------
+# 计算文件可读大小
+# ------------------------------------------------------------------------------
 calculate_size() {
     local file_name=$1
     local file_size=$(du -h $file_name 2>/dev/null | awk '{print $1}')
@@ -170,7 +147,9 @@ calculate_size() {
     fi
 }
 
-# Backup MySQL databases
+# ------------------------------------------------------------------------------
+# 导出 MySQL 数据库
+# ------------------------------------------------------------------------------
 mysql_backup() {
     if [ -z ${MYSQL_ROOT_PASSWORD} ]; then
         log "MySQL root password not set, MySQL backup skipped"
@@ -185,15 +164,16 @@ EOF
         fi
     
         if [ "${MYSQL_DATABASE_NAME[*]}" == "" ]; then
+            # 导出所有数据库
             mysqldump -u ${MYSQL_ROOT_NAME} -p${MYSQL_ROOT_PASSWORD} --all-databases > "${SQLFILE}" 2>/dev/null
             if [ $? -ne 0 ]; then
                 log "MySQL all databases backup failed"
                 exit 1
             fi
             log "MySQL all databases dump file name: ${SQLFILE}"
-            #Add MySQL backup dump file to BACKUP list
             BACKUP=(${BACKUP[*]} ${SQLFILE})
         else
+            # 依次导出指定的各数据库
             for db in ${MYSQL_DATABASE_NAME[*]}
             do
                 unset DBFILE
@@ -204,7 +184,6 @@ EOF
                     exit 1
                 fi
                 log "MySQL database name [${db}] dump file name: ${DBFILE}"
-                #Add MySQL backup dump file to BACKUP list
                 BACKUP=(${BACKUP[*]} ${DBFILE})
             done
         fi
@@ -212,10 +191,14 @@ EOF
     fi
 }
 
+# ------------------------------------------------------------------------------
+# 打包并加密备份归档
+# ------------------------------------------------------------------------------
 start_backup() {
     [ "${BACKUP[*]}" == "" ] && echo "Error: You must to modify the [$(basename $0)] config before run it!" && exit 1
 
     log "Tar backup file start"
+    # 使用 -P 保留绝对路径
     tar -zcPf ${TARFILE} ${BACKUP[*]}
     if [ $? -gt 1 ]; then
         log "Tar backup file failed"
@@ -223,23 +206,18 @@ start_backup() {
     fi
     log "Tar backup file completed"
 
-    # Encrypt tar file
+    # 若开启加密，使用 AES-256-CBC 进行加密，并清理未加密文件
     if ${ENCRYPTFLG}; then
         log "Encrypt backup file start"
         openssl enc -aes-256-cbc -md sha512 -pbkdf2 -pass pass:${BACKUPPASS} -in "${TARFILE}" -out "${ENC_TARFILE}"
         log "Encrypt backup file completed"
 
-        # Delete unencrypted tar
         log "Delete unencrypted tar file: ${TARFILE}"
         rm -f ${TARFILE}
     fi
 
-    # Delete MySQL temporary dump file
-    for sql in `ls ${TEMPDIR}*.sql`
-    do
-        log "Delete MySQL temporary dump file: ${sql}"
-        rm -f ${sql}
-    done
+    # 清理本次导出的临时 SQL 文件
+    rm -f "${TEMPDIR}"/*.sql 2>/dev/null || true
 
     if ${ENCRYPTFLG}; then
         OUT_FILE="${ENC_TARFILE}"
@@ -249,7 +227,9 @@ start_backup() {
     log "File name: ${OUT_FILE}, File size: `calculate_size ${OUT_FILE}`"
 }
 
-# Transfer backup file to Google Drive
+# ------------------------------------------------------------------------------
+# 上传备份归档至 Google Drive (借助 Rclone)
+# ------------------------------------------------------------------------------
 rclone_upload() {
     if ${RCLONE_FLG} && ${RCLONE_COMMAND}; then
         [ -z "${RCLONE_NAME}" ] && log "Error: RCLONE_NAME can not be empty!" && return 1
@@ -270,7 +250,9 @@ rclone_upload() {
     fi
 }
 
-# Tranferring backup file to FTP server
+# ------------------------------------------------------------------------------
+# 上传备份归档至 FTP 服务器
+# ------------------------------------------------------------------------------
 ftp_upload() {
     if ${FTP_FLG}; then
         [ -z "${FTP_HOST}" ] && log "Error: FTP_HOST can not be empty!" && return 1
@@ -295,27 +277,41 @@ EOF
     fi
 }
 
-# Get file date
+# ------------------------------------------------------------------------------
+# 解析文件名中的 14 位时间戳并计算文件天数（用于远端文件过期比对）
+# ------------------------------------------------------------------------------
 get_file_date() {
-    #Approximate a 30-day month and 365-day year
-    DAYS=$(( $((10#${YEAR}*365)) + $((10#${MONTH}*30)) + $((10#${DAY})) ))
+    local fname=$1
+    local date_part
+    # 提取文件名中的 14 位时间戳 (YYYYMMDDHHMMSS)，避免因主机名包含下划线导致截取失败
+    date_part=$(echo "$fname" | grep -oE '[0-9]{14}' | head -1)
 
-    unset FILEYEAR FILEMONTH FILEDAY FILEDAYS FILEAGE
-    FILEYEAR=$(echo "$1" | cut -d_ -f2 | cut -c 1-4)
-    FILEMONTH=$(echo "$1" | cut -d_ -f2 | cut -c 5-6)
-    FILEDAY=$(echo "$1" | cut -d_ -f2 | cut -c 7-8)
-
-    if [[ "${FILEYEAR}" && "${FILEMONTH}" && "${FILEDAY}" ]]; then
-        #Approximate a 30-day month and 365-day year
-        FILEDAYS=$(( $((10#${FILEYEAR}*365)) + $((10#${FILEMONTH}*30)) + $((10#${FILEDAY})) ))
-        FILEAGE=$(( 10#${DAYS} - 10#${FILEDAYS} ))
-        return 0
+    if [ -z "$date_part" ]; then
+        return 1
+    fi
+    
+    local file_ts
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS 日期转换
+        file_ts=$(date -j -f "%Y%m%d%H%M%S" "$date_part" +%s 2>/dev/null)
+    else
+        # Linux 日期转换
+        file_ts=$(date -d "${date_part:0:8} ${date_part:8:2}:${date_part:10:2}:${date_part:12:2}" +%s 2>/dev/null)
     fi
 
-    return 1
+    if [ -z "$file_ts" ]; then
+        return 1
+    fi
+
+    local current_ts
+    current_ts=$(date +%s)
+    FILEAGE=$(( (current_ts - file_ts) / 86400 ))
+    return 0
 }
 
-# Delete Google Drive's old backup file
+# ------------------------------------------------------------------------------
+# 删除 Google Drive 上的指定过期备份文件
+# ------------------------------------------------------------------------------
 delete_gdrive_file() {
     local FILENAME=$1
     if ${DELETE_REMOTE_FILE_FLG} && ${RCLONE_COMMAND}; then
@@ -333,7 +329,9 @@ delete_gdrive_file() {
     fi
 }
 
-# Delete FTP server's old backup file
+# ------------------------------------------------------------------------------
+# 删除 FTP 服务器上的指定过期备份文件
+# ------------------------------------------------------------------------------
 delete_ftp_file() {
     local FILENAME=$1
     if ${DELETE_REMOTE_FILE_FLG} && ${FTP_FLG}; then
@@ -351,46 +349,78 @@ EOF
     fi
 }
 
-# Clean up old file
+# ------------------------------------------------------------------------------
+# 清理本地及远端过期备份文件（基于 find -mtime，同时清理残留 SQL）
+# ------------------------------------------------------------------------------
 clean_up_files() {
-    cd ${LOCALDIR} || exit
+    log "Starting cleanup of old backup files..."
 
-    if ${ENCRYPTFLG}; then
-        LS=($(ls *.enc))
-    else
-        LS=($(ls *.tgz))
+    # 1. 查找并删除 LOCALDIR 下超过 LOCALAGEDAILIES 天的历史备份文件（支持 .tgz, .enc, .tar.gz）
+    if [ -d "${LOCALDIR}" ]; then
+        while IFS= read -r -d '' file; do
+            local basename_file
+            basename_file=$(basename "$file")
+            rm -f "$file"
+            log "Local old backup file deleted: ${basename_file}"
+            
+            # 若开启远端删除，同步清理 Google Drive 与 FTP 上的同名旧备份
+            delete_gdrive_file "${basename_file}"
+            delete_ftp_file "${basename_file}"
+        done < <(find "${LOCALDIR}" -maxdepth 1 \( -name "*.tgz" -o -name "*.enc" -o -name "*.tar.gz" \) -type f -mtime +"${LOCALAGEDAILIES}" -print0 2>/dev/null)
     fi
-    for f in ${LS[@]}; do
-        get_file_date ${f}
-        if [ $? -eq 0 ]; then
-            if [[ ${FILEAGE} -gt ${LOCALAGEDAILIES} ]]; then
-                rm -f ${f}
-                log "Old backup file name: ${f} has been deleted"
-                delete_gdrive_file ${f}
-                delete_ftp_file ${f}
-            fi
-        fi
-    done
+
+    # 2. 清理临时目录中遗留超过 1 天的 SQL 转储文件
+    if [ -d "${TEMPDIR}" ]; then
+        find "${TEMPDIR}" -maxdepth 1 -name "*.sql" -type f -mtime +1 -delete 2>/dev/null || true
+    fi
+
+    log "Cleanup completed"
 }
 
-# Main progress
+# ------------------------------------------------------------------------------
+# 退出兜底处理函数 (Exit Trap)
+# 无论脚本正常结束或异常中断，均能清理临时 SQL 并保障本地旧备份清理执行
+# ------------------------------------------------------------------------------
+cleanup_on_exit() {
+    local exit_code=$?
+    # 强制清理临时 sql 文件
+    rm -f "${TEMPDIR}"/*.sql 2>/dev/null || true
+    # 兜底执行本地旧备份清理，防止因异常退出导致旧备份不断累积满盘
+    clean_up_files >/dev/null 2>&1 || true
+    if [ $exit_code -ne 0 ]; then
+        log "Backup script ended with error status ${exit_code}."
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# 主流程执行 (Main Execution)
+# ------------------------------------------------------------------------------
+trap cleanup_on_exit EXIT
 STARTTIME=$(date +%s)
 
-# Check if the backup folders exist and are writeable
+# 确保本地备份和临时目录存在
 [ ! -d "${LOCALDIR}" ] && mkdir -p ${LOCALDIR}
 [ ! -d "${TEMPDIR}" ] && mkdir -p ${TEMPDIR}
 
 log "Backup progress start"
+
+# 1. 检查依赖与环境
 check_commands
+
+# 2. 导出数据库
 mysql_backup
+
+# 3. 生成归档并加密
 start_backup
 log "Backup progress complete"
 
+# 4. 上传至异地存储
 log "Upload progress start"
 rclone_upload
 ftp_upload
 log "Upload progress complete"
 
+# 5. 执行清理
 log "Cleaning up"
 clean_up_files
 
@@ -398,3 +428,4 @@ ENDTIME=$(date +%s)
 DURATION=$((ENDTIME - STARTTIME))
 log "All done"
 log "Backup and transfer completed in ${DURATION} seconds"
+

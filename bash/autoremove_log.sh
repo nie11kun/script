@@ -1,14 +1,38 @@
 #!/bin/sh
-# 删除日志文件
+# ==============================================================================
+# 脚本名称: autoremove_log.sh
+# 脚本说明: 日志清理与历史备份保底清理脚本
+# 适用环境: Linux / VPS 服务器
+# 推荐配置: 放入系统定时任务（Cron），每日凌晨定期执行（如 03:30）
+# ==============================================================================
 
-cat /dev/null > /opt/nginx/logs/access.log
-cat /dev/null > /opt/nginx/logs/error.log
+# ------------------------------------------------------------------------------
+# 1. 截断 Web 服务器日志（保持文件 inode 不变，清空文件内容）
+# ------------------------------------------------------------------------------
+[ -f /opt/nginx/logs/access.log ] && cat /dev/null > /opt/nginx/logs/access.log
+[ -f /opt/nginx/logs/error.log ] && cat /dev/null > /opt/nginx/logs/error.log
 
-rm /opt/frp/frps.*.log
+# ------------------------------------------------------------------------------
+# 2. 清理 FRP 服务端切片日志文件
+# ------------------------------------------------------------------------------
+rm -f /opt/frp/frps.*.log 2>/dev/null || true
 
-rm /home/backups/backup.log
+# ------------------------------------------------------------------------------
+# 3. 截断备份日志，防止长期运行日志无限增长占满磁盘
+# ------------------------------------------------------------------------------
+[ -f /home/backups/backup.log ] && cat /dev/null > /home/backups/backup.log
 
-cat /dev/null > /var/log/v2ray/access.log
-cat /dev/null > /var/log/v2ray/error.log
+# ------------------------------------------------------------------------------
+# 4. 截断代理服务日志
+# ------------------------------------------------------------------------------
+[ -f /var/log/v2ray/access.log ] && cat /dev/null > /var/log/v2ray/access.log 2>/dev/null || true
+[ -f /var/log/v2ray/error.log ] && cat /dev/null > /var/log/v2ray/error.log 2>/dev/null || true
 
-# rm /home/log/submit_code.log
+# ------------------------------------------------------------------------------
+# 5. 独立保底清理机制（防止主备份脚本异常中断未清理导致满盘）
+# 5.1 自动删除 /home/backups 下修改时间超过 14 天的备份归档文件（.tgz, .enc, .tar.gz）
+# 5.2 自动删除 /home/backups/temp 下修改时间超过 2 天的遗留临时 SQL 转储文件
+# ------------------------------------------------------------------------------
+find /home/backups -maxdepth 1 \( -name "*.tgz" -o -name "*.enc" -o -name "*.tar.gz" \) -type f -mtime +14 -delete 2>/dev/null || true
+find /home/backups/temp -maxdepth 1 -name "*.sql" -type f -mtime +2 -delete 2>/dev/null || true
+
