@@ -5,26 +5,31 @@
 # 执行流程: 
 #   1. 通过 SSH 在 OpenWrt 路由器上调用 sysupgrade 生成配置备份归档
 #   2. 通过 SCP 下载备份归档到本地临时目录
-#   3. 通过 Curl 上传备份到远程 FTP 服务器
-#   4. 触发 Exit Trap 安全机制，清理路由器端与本地端的临时归档文件
-# 前置依赖:
-#   1. sshpass: apt install sshpass
-#   2. curl: apt install curl
+#   3. 通过 Curl 上传备份到远程 NAS FTP 服务器
+#   4. 清理两端临时文件并清理 NAS FTP 超过 7 天的历史备份
 # ==============================================================================
+
+# 自动加载环境变量文件
+if [ -f "/etc/env_addon" ]; then
+    set -a
+    . /etc/env_addon
+    set +a
+fi
 
 # ------------------------------------------------------------------------------
 # 配置区域 (Configuration)
 # ------------------------------------------------------------------------------
 # OpenWrt 路由器连接信息
-ROUTER_IP=$router_ip                 # 路由器 IP 地址
-ROUTER_USER=$router_user             # 路由器 SSH 用户名
-ROUTER_PASS=$router_passwd           # 路由器 SSH 密码
+ROUTER_IP="${router_ip:-openwrt.home.marco}"
+ROUTER_USER="${router_user:-root}"
+ROUTER_PASS="${router_passwd:-}"
 
 # 远程 FTP 服务器连接信息
-FTP_HOST=$ftp_host                   # FTP 主机地址
-FTP_USER=$ftp_user                   # FTP 用户名
-FTP_PASS=$ftp_passwd                 # FTP 密码
-FTP_DIR="nas-backup/OpenwrtBackup"   # 远程 FTP 目标保存目录
+FTP_HOST="${ftp_host:-nas.home.marco}"
+FTP_USER="${ftp_user:-marco}"
+FTP_PASS="${ftp_passwd:-}"
+FTP_DIR="nas-backup/OpenwrtBackup"
+KEEP_DAYS=7
 
 # 本地临时路径与日志设置
 LOCAL_BACKUP_DIR="/tmp/openwrt_backups"          # 本地临时中转目录
@@ -35,6 +40,7 @@ REMOTE_TEMP_PATH="/tmp/${BACKUP_FILENAME}"       # 路由器端生成的临时�
 
 # 确保本地临时目录存在
 mkdir -p "$LOCAL_BACKUP_DIR"
+mkdir -p "$(dirname "$LOGFILE")"
 
 # ------------------------------------------------------------------------------
 # 日志记录辅助函数
@@ -97,7 +103,7 @@ log "Backup downloaded to: $LOCAL_BACKUP_DIR/$BACKUP_FILENAME"
 # 步骤 3: 上传备份到远程 FTP 服务器
 # ------------------------------------------------------------------------------
 log "Uploading to FTP server..."
-curl --silent --show-error --fail -u "$FTP_USER:$FTP_PASS" \
+curl --silent --show-error --fail --ftp-create-dirs -u "$FTP_USER:$FTP_PASS" \
     -T "$LOCAL_BACKUP_DIR/$BACKUP_FILENAME" \
     "ftp://$FTP_HOST/$FTP_DIR/"
 
@@ -108,4 +114,24 @@ else
     log "Backup uploaded successfully to ftp://$FTP_HOST/$FTP_DIR/$BACKUP_FILENAME"
 fi
 
-log "Process completed successfully."
+# ------------------------------------------------------------------------------
+# 步骤 4: 清理 FTP 上超过保留天数的旧备份
+# ------------------------------------------------------------------------------
+log "Checking FTP for old OpenWrt backups (older than ${KEEP_DAYS} days)..."
+ftp_files=$(curl --silent --list-only -u "$FTP_USER:$FTP_PASS" "ftp://$FTP_HOST/$FTP_DIR/" 2>/dev/null || true)
+now_sec=$(date +%s)
+for remote_file in $ftp_files; do
+    if [[ "$remote_file" =~ backup-openwrt-([0-9]{8})[0-9]*\.tar\.gz ]]; then
+        file_date="${BASH_REMATCH[1]}"
+        file_sec=$(date -d "${file_date}" +%s 2>/dev/null || true)
+        if [ -n "$file_sec" ]; then
+            diff_days=$(( (now_sec - file_sec) / 86400 ))
+            if [ $diff_days -gt $KEEP_DAYS ]; then
+                log "Deleting old OpenWrt FTP file: $remote_file (Age: ${diff_days} days)"
+                curl --silent -u "$FTP_USER:$FTP_PASS" "ftp://$FTP_HOST/$FTP_DIR/" -Q "DELE $remote_file" >/dev/null 2>&1 || true
+            fi
+        fi
+    fi
+done
+
+log "OpenWrt backup process completed successfully."

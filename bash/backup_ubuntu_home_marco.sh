@@ -19,6 +19,13 @@ set -e
 # 检查执行权限（必须为 root 用户）
 [[ $EUID -ne 0 ]] && echo "Error: This script must be run as root!" && exit 1
 
+# 自动加载环境变量文件
+if [ -f "/etc/env_addon" ]; then
+    set -a
+    . /etc/env_addon
+    set +a
+fi
+
 # ==============================================================================
 # 配置区域 (START OF CONFIG)
 # ==============================================================================
@@ -68,10 +75,10 @@ RCLONE_FOLDER=""                       # Rclone 远端保存目录
 
 # --- FTP 服务器配置 ---
 FTP_FLG=true                           # 是否上传到 FTP 服务器 (true: 上传, false: 不上传)
-FTP_HOST="${ftp_host}"                 # FTP 主机 IP 或域名
-FTP_USER="${ftp_user}"                 # FTP 登录用户名
-FTP_PASS="${ftp_passwd}"               # FTP 登录密码
-FTP_DIR="nas-backup/UbuntuBackUp"      # FTP 远端目标目录
+FTP_HOST="${ftp_host:-nas.home.marco}" # FTP 主机地址
+FTP_USER="${ftp_user:-marco}"          # FTP 用户名
+FTP_PASS="${ftp_passwd:-}"             # FTP 密码
+FTP_DIR="nas-backup/UbuntuBackUp"      # FTP 远端保存目录
 
 # ==============================================================================
 # 配置区域结束 (END OF CONFIG)
@@ -91,32 +98,40 @@ SQLFILE="${TEMPDIR}mysql_${BACKUPDATE}.sql"
 # ------------------------------------------------------------------------------
 log() {
     echo -e "$(date "+%Y-%m-%d %H:%M:%S") $1" >> "${LOGFILE}"
+    echo "$1"
 }
 
 # ------------------------------------------------------------------------------
 # 检查所需命令行工具依赖是否齐全
 # ------------------------------------------------------------------------------
 check_commands() {
-    local BINARIES=( cat cd du date dirname echo openssl mysql mysqldump pwd rm tar find )
+    local BINARIES=('cat' 'cd' 'du' 'date' 'dirname' 'echo' 'openssl' 'mysql' 'mysqldump' 'pwd' 'rm' 'tar' 'find')
     for BINARY in "${BINARIES[@]}"; do
+        if [ "$BINARY" = "mysql" ] || [ "$BINARY" = "mysqldump" ]; then
+            if [ -n "${MYSQL_ROOT_PASSWORD}" ] && ! command -v "$BINARY" >/dev/null 2>&1; then
+                log "WARN: Command not found: $BINARY (MySQL backup enabled but client tools missing)"
+            fi
+            continue
+        fi
         if ! command -v "$BINARY" >/dev/null 2>&1; then
-            log "ERROR: $BINARY is not installed. Install it and try again."
+            log "ERROR: Required command not found: $BINARY"
             exit 1
         fi
     done
 
     # 检查 Rclone 是否可用
     RCLONE_AVAILABLE=false
-    if command -v "rclone" >/dev/null 2>&1; then
-        RCLONE_AVAILABLE=true
+    if ${RCLONE_FLG}; then
+        if command -v rclone >/dev/null 2>&1; then
+            RCLONE_AVAILABLE=true
+        else
+            log "WARN: rclone not found, Google Drive upload will be skipped."
+        fi
     fi
 
-    # 检查 Curl（用于 FTP 传输）
-    if ${FTP_FLG}; then
-        if ! command -v "curl" >/dev/null 2>&1; then
-            log "ERROR: curl is not installed. Install it and try again for FTP support."
-            exit 1
-        fi
+    if ${FTP_FLG} && ! command -v curl >/dev/null 2>&1; then
+        log "ERROR: curl is required for FTP upload but not found."
+        exit 1
     fi
 }
 
@@ -128,90 +143,77 @@ mysql_backup() {
         log "MySQL root password not set, skipping MySQL backup."
         return
     fi
-    
-    log "MySQL dump start"
-    
-    # 验证 MySQL 连接与密码
-    if ! mysql -u "${MYSQL_ROOT_NAME}" -p"${MYSQL_ROOT_PASSWORD}" -e "exit" 2>/dev/null; then
-        log "ERROR: MySQL root password incorrect."
-        exit 1
-    fi
+
+    log "Starting MySQL dump..."
+    local MYSQL_CMD="mysqldump --quick --single-transaction"
+    [ -n "${MYSQL_ROOT_NAME}" ] && MYSQL_CMD+=" -u ${MYSQL_ROOT_NAME}"
+    MYSQL_CMD+=" -p${MYSQL_ROOT_PASSWORD}"
 
     if [ ${#MYSQL_DATABASE_NAME[@]} -eq 0 ]; then
-        # 导出全部数据库
-        mysqldump -u "${MYSQL_ROOT_NAME}" -p"${MYSQL_ROOT_PASSWORD}" --all-databases > "${SQLFILE}" 2>/dev/null
-        log "MySQL all databases dump: ${SQLFILE}"
-        BACKUP+=("${SQLFILE}")
+        log "Dumping all databases..."
+        ${MYSQL_CMD} --all-databases > "${SQLFILE}" 2>/dev/null || { log "ERROR: mysqldump failed"; return 1; }
     else
-        # 依次导出指定的各数据库
-        for db in "${MYSQL_DATABASE_NAME[@]}"; do
-            DBFILE="${TEMPDIR}${db}_${BACKUPDATE}.sql"
-            mysqldump -u "${MYSQL_ROOT_NAME}" -p"${MYSQL_ROOT_PASSWORD}" "${db}" > "${DBFILE}" 2>/dev/null
-            log "MySQL database [${db}] dump: ${DBFILE}"
-            BACKUP+=("${DBFILE}")
-        done
+        log "Dumping specific databases: ${MYSQL_DATABASE_NAME[*]}..."
+        ${MYSQL_CMD} --databases "${MYSQL_DATABASE_NAME[@]}" > "${SQLFILE}" 2>/dev/null || { log "ERROR: mysqldump failed"; return 1; }
     fi
-    log "MySQL dump completed"
+    log "MySQL dump completed: ${SQLFILE}"
 }
 
 # ------------------------------------------------------------------------------
 # 打包备份文件（支持 tar 打包与 openssl 加密）
 # ------------------------------------------------------------------------------
 create_backup_archive() {
-    local FINAL_FILE
+    local valid_items=()
+    for item in "${BACKUP[@]}"; do
+        if [ -e "$item" ]; then
+            valid_items+=("$item")
+        else
+            log "Notice: Backup target not found (skipping): $item"
+        fi
+    done
 
-    [ ${#BACKUP[@]} -eq 0 ] && log "ERROR: No files to backup." && exit 1
+    if [ -f "${SQLFILE}" ]; then
+        valid_items+=("${SQLFILE}")
+    fi
 
-    log "Creating tar archive..."
-    # 使用 -P 保留绝对路径
-    if ! tar -zcPf "${TARFILE}" "${BACKUP[@]}"; then
-        log "ERROR: Tar backup failed."
+    if [ ${#valid_items[@]} -eq 0 ]; then
+        log "ERROR: No valid files or directories found to backup."
         exit 1
     fi
+
+    log "Creating tar archive..."
+    tar -zcPf "${TARFILE}" "${valid_items[@]}"
     log "Tar backup completed: ${TARFILE}"
 
-    # 若开启加密，使用 AES-256-CBC 进行加密，并清理未加密文件
+    local FINAL_FILE="${TARFILE}"
+
     if ${ENCRYPTFLG}; then
-        log "Encrypting backup..."
-        openssl enc -aes-256-cbc -md sha512 -pbkdf2 -pass "pass:${BACKUPPASS}" -in "${TARFILE}" -out "${ENC_TARFILE}"
-        log "Encryption completed: ${ENC_TARFILE}"
-        
+        log "Encrypting backup archive with AES-256-CBC..."
+        openssl enc -aes-256-cbc -salt -md sha512 -pbkdf2 -iter 100000 \
+            -in "${TARFILE}" -out "${ENC_TARFILE}" -pass "pass:${BACKUPPASS}"
         rm -f "${TARFILE}"
         FINAL_FILE="${ENC_TARFILE}"
-    else
-        FINAL_FILE="${TARFILE}"
+        log "Encryption completed: ${ENC_TARFILE}"
     fi
 
-    # 清理本次导出的临时 SQL 文件
     rm -f "${TEMPDIR}"/*.sql 2>/dev/null || true
-
-    # 设置用于上传的文件路径及大小记录
     export UPLOAD_FILE="${FINAL_FILE}"
     local SIZE
-    SIZE=$(du -h "${UPLOAD_FILE}" | awk '{print $1}')
-    log "Backup ready: ${UPLOAD_FILE} (Size: ${SIZE})"
+    SIZE=$(du -h "${FINAL_FILE}" | awk '{print $1}')
+    log "Backup ready: ${FINAL_FILE} (Size: ${SIZE})"
 }
 
 # ------------------------------------------------------------------------------
 # 上传至 Google Drive (借助 Rclone)
 # ------------------------------------------------------------------------------
 rclone_upload() {
-    if ${RCLONE_FLG} && ${RCLONE_AVAILABLE}; then
-        [ -z "${RCLONE_NAME}" ] && log "ERROR: RCLONE_NAME empty." && return 1
-        
-        log "Uploading to Google Drive: ${RCLONE_NAME}:${RCLONE_FOLDER}"
-        
-        # 确保目标目录存在
-        if [ -n "${RCLONE_FOLDER}" ]; then
-            rclone mkdir "${RCLONE_NAME}:${RCLONE_FOLDER}" >/dev/null 2>&1 || true
-        fi
-        
-        if rclone copy "${UPLOAD_FILE}" "${RCLONE_NAME}:${RCLONE_FOLDER}" >> "${LOGFILE}" 2>&1; then
-             log "Google Drive upload success."
-        else
-             log "ERROR: Google Drive upload failed."
-             return 1
-        fi
+    if ! ${RCLONE_FLG} || ! ${RCLONE_AVAILABLE}; then return; fi
+    log "Uploading to Google Drive via rclone: ${RCLONE_NAME}:${RCLONE_FOLDER}"
+    if rclone copy "${UPLOAD_FILE}" "${RCLONE_NAME}:${RCLONE_FOLDER}"; then
+        log "Rclone upload successful."
+    else
+        log "ERROR: Rclone upload failed."
+        return 1
     fi
 }
 
@@ -219,22 +221,19 @@ rclone_upload() {
 # 上传至 FTP 服务器 (借助 Curl)
 # ------------------------------------------------------------------------------
 ftp_upload() {
-    if ${FTP_FLG}; then
-        log "Uploading to FTP: ftps://${FTP_HOST}/${FTP_DIR}"
-        
-        local FILENAME
-        FILENAME=$(basename "${UPLOAD_FILE}")
-        
-        # 使用 curl 进行 FTP 文件上传，--ftp-create-dirs 自动创建不存在的远端目录
-        if curl --fail --silent --show-error --ftp-create-dirs \
-             -T "${UPLOAD_FILE}" \
-             -u "${FTP_USER}:${FTP_PASS}" \
-             "ftp://${FTP_HOST}/${FTP_DIR}/"; then
-            log "FTP upload success."
-        else
-            log "ERROR: FTP upload failed."
-            return 1
-        fi
+    if ! ${FTP_FLG}; then return; fi
+    log "Uploading to FTP: ftp://${FTP_HOST}/${FTP_DIR}"
+    local FILENAME
+    FILENAME=$(basename "${UPLOAD_FILE}")
+
+    if curl --fail --silent --show-error --ftp-create-dirs \
+            -T "${UPLOAD_FILE}" \
+            -u "${FTP_USER}:${FTP_PASS}" \
+            "ftp://${FTP_HOST}/${FTP_DIR}/"; then
+        log "FTP upload successful: ${FILENAME}"
+    else
+        log "ERROR: FTP upload failed."
+        return 1
     fi
 }
 
@@ -242,36 +241,26 @@ ftp_upload() {
 # 解析远端文件名时间戳并计算是否超过保留天数（用于远端清理）
 # ------------------------------------------------------------------------------
 get_file_date_legacy() {
-    local fname=$1
-    local date_part
-    # 提取文件名中的 14 位时间戳 (YYYYMMDDHHMMSS)
-    date_part=$(echo "$fname" | grep -oE '[0-9]{14}' | head -1)
-
-    if [ -z "$date_part" ]; then
-        return 1
-    fi
-    
-    local file_ts
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS 日期转换
-        file_ts=$(date -j -f "%Y%m%d%H%M%S" "$date_part" +%s 2>/dev/null)
+    local filename="$1"
+    local file_date
+    if [[ "$filename" =~ _([0-9]{8})[0-9]*\.tgz(\.enc)?$ ]]; then
+        file_date="${BASH_REMATCH[1]}"
     else
-        # Linux 日期转换
-        file_ts=$(date -d "${date_part:0:8} ${date_part:8:2}:${date_part:10:2}:${date_part:12:2}" +%s 2>/dev/null)
-    fi
-
-    if [ -z "$file_ts" ]; then
         return 1
     fi
 
-    local current_ts
-    current_ts=$(date +%s)
-    local diff=$(( (current_ts - file_ts) / 86400 ))
+    local file_sec
+    file_sec=$(date -d "${file_date}" +%s 2>/dev/null || true)
+    [ -z "$file_sec" ] && return 1
 
-    if [ "$diff" -gt "$LOCALAGEDAILIES" ]; then
-        return 0 # 超过保留天数
+    local now_sec
+    now_sec=$(date +%s)
+    local diff_days=$(( (now_sec - file_sec) / 86400 ))
+
+    if [ $diff_days -gt "${LOCALAGEDAILIES}" ]; then
+        return 0
     else
-        return 1 # 未超过保留天数
+        return 1
     fi
 }
 
@@ -279,19 +268,16 @@ get_file_date_legacy() {
 # 清理本地过期备份（基于 find -mtime，支持 .tgz, .enc, .tar.gz）
 # ------------------------------------------------------------------------------
 clean_local_files() {
-    log "Cleaning up local files older than ${LOCALAGEDAILIES} days..."
-    
-    # 1. 查找并删除超过 LOCALAGEDAILIES 天的历史备份文件
-    if [ -d "${LOCALDIR}" ]; then
-        find "${LOCALDIR}" -maxdepth 1 \( -name "*.tgz" -o -name "*.enc" -o -name "*.tar.gz" \) -type f -mtime +"${LOCALAGEDAILIES}" -print -delete 2>/dev/null | while read -r file; do
-            [ -n "$file" ] && log "Deleted local old backup: $file"
-        done
-    fi
-
-    # 2. 清理临时目录中遗留超过 1 天的 SQL 转储
-    if [ -d "${TEMPDIR}" ]; then
-        find "${TEMPDIR}" -maxdepth 1 -name "*.sql" -type f -mtime +1 -delete 2>/dev/null || true
-    fi
+    log "Cleaning local backups older than ${LOCALAGEDAILIES} days in ${LOCALDIR}..."
+    local count=0
+    while IFS= read -r -d '' file; do
+        if get_file_date_legacy "$(basename "$file")"; then
+            log "Deleting old local backup: $file"
+            rm -f "$file"
+            ((count++)) || true
+        fi
+    done < <(find "${LOCALDIR}" -maxdepth 1 \( -name "${HOSTNAME_FULL}_*.tgz" -o -name "${HOSTNAME_FULL}_*.tgz.enc" \) -print0)
+    log "Local cleanup finished. Removed ${count} file(s)."
 }
 
 # ------------------------------------------------------------------------------
@@ -300,7 +286,6 @@ clean_local_files() {
 clean_remote_files() {
     if ! ${DELETE_REMOTE_FILE_FLG}; then return; fi
 
-    # Google Drive 远端文件清理
     if ${RCLONE_FLG} && ${RCLONE_AVAILABLE}; then
         log "Checking Google Drive for old files..."
         rclone lsf "${RCLONE_NAME}:${RCLONE_FOLDER}" | while read -r remote_file; do
@@ -311,17 +296,14 @@ clean_remote_files() {
         done
     fi
 
-    # FTP 远端文件清理
     if ${FTP_FLG}; then
         log "Checking FTP for old files..."
         local ftp_files
         ftp_files=$(curl --silent --list-only -u "${FTP_USER}:${FTP_PASS}" "ftp://${FTP_HOST}/${FTP_DIR}/" || true)
-        
         for remote_file in $ftp_files; do
             if get_file_date_legacy "$remote_file"; then
                  log "Deleting old FTP file: $remote_file"
-                 # 通过 FTP DELE 指令删除过期文件
-                 curl --silent -u "${FTP_USER}:${FTP_PASS}" "ftp://${FTP_HOST}/${FTP_DIR}/" -Q "DELE $remote_file" || log "Failed to delete $remote_file"
+                 curl --silent -u "${FTP_USER}:${FTP_PASS}" "ftp://${FTP_HOST}/${FTP_DIR}/" -Q "DELE $remote_file" >/dev/null 2>&1 || true
             fi
         done
     fi
@@ -333,9 +315,7 @@ clean_remote_files() {
 # ------------------------------------------------------------------------------
 cleanup_on_exit() {
     local exit_code=$?
-    # 强制清理临时 sql 文件
     rm -f "${TEMPDIR}"/*.sql 2>/dev/null || true
-    # 兜底执行本地旧备份清理，防止因异常退出导致旧备份不断累积满盘
     clean_local_files >/dev/null 2>&1 || true
     if [ $exit_code -ne 0 ]; then
         log "Backup script finished with exit status ${exit_code}."
