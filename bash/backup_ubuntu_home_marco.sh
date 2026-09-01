@@ -43,14 +43,6 @@ LOGFILE="/home/backups/backup.log"     # 备份操作日志输出路径
 
 # --- 备份文件与目录清单 ---
 BACKUP=(
-    "/opt/docker/chinesesubfinder/docker-compose.yml"
-    "/opt/docker/chinesesubfinder/config"
-    "/opt/docker/jellyfin/docker-compose.yml"
-    "/opt/docker/jellyfin/config/config"
-    "/opt/docker/nas-tools/docker-compose.yml"
-    "/opt/docker/nas-tools/config"
-    "/opt/docker/qinglong/docker-compose.yml"
-    "/opt/docker/qinglong/data"
     "/opt/docker/study_xxqg/docker-compose.yml"
     "/opt/docker/study_xxqg/config"
     "/opt/aria2/aria2.conf"
@@ -62,9 +54,6 @@ BACKUP=(
     "/etc/vsftpd.conf"
     "/etc/env_addon"
     "/etc/nginx/conf.d"
-    "/opt/docker/immich-app/docker-compose.yml"
-    "/opt/docker/immich-app/.env"
-    "/opt/docker/pixman/docker-compose.yml"
     "/etc/systemd/system"
 )
 
