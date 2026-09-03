@@ -77,10 +77,14 @@ trap cleanup EXIT
 
 # ------------------------------------------------------------------------------
 # 步骤 1: 在 OpenWrt 路由器上生成配置备份
+# (备份机制说明: sysupgrade -b 会自动打包系统核心配置 + /etc/sysupgrade.conf 中的自定义路径)
 # ------------------------------------------------------------------------------
 log "Starting OpenWrt backup process..."
+
+# 确保 OpenWrt 端的 /etc/sysupgrade.conf 包含关键自定义路径 (/etc/v2ray/, /etc/ethers, /etc/firewall.user 等)
+# 并在备份前动态导出当前已安装的软件包清单 (/etc/installed_packages.txt)，确保灾难恢复时可完整重装软件包
 sshpass -p "$ROUTER_PASS" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$ROUTER_USER@$ROUTER_IP" \
-    "umask go=; sysupgrade -b $REMOTE_TEMP_PATH"
+    "for item in '/etc/v2ray/' '/etc/ethers' '/etc/firewall.user' '/etc/installed_packages.txt'; do grep -qxF \"\$item\" /etc/sysupgrade.conf 2>/dev/null || echo \"\$item\" >> /etc/sysupgrade.conf; done; opkg list-installed > /etc/installed_packages.txt 2>/dev/null || true; umask go=; sysupgrade -b $REMOTE_TEMP_PATH"
 
 if [ "$?" -ne 0 ]; then
     error "Failed to generate backup on OpenWrt."

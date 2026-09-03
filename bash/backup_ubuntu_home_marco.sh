@@ -39,9 +39,9 @@ ENCRYPTFLG=false
 BACKUPPASS="password"
 
 # --- MySQL 数据库配置 ---
-MYSQL_ROOT_NAME=""                     # MySQL root 用户名（留空则跳过 MySQL 备份）
-MYSQL_ROOT_PASSWORD=""                 # MySQL root 密码
-MYSQL_DATABASE_NAME=()                 # 指定备份的数据库列表，留空 array 则备份所有数据库
+MYSQL_ROOT_NAME="${mysql_user:-}"      # MySQL 用户名（优先读取 /etc/env_addon 中的 mysql_user，留空跳过）
+MYSQL_ROOT_PASSWORD="${mysql_passwd:-}" # MySQL 密码（优先读取 /etc/env_addon 中的 mysql_passwd）
+MYSQL_DATABASE_NAME=()                  # 指定备份数据库列表，留空 array 则备份所有数据库
 
 # --- 存储路径与日志 ---
 LOCALDIR="/home/backups/"              # 本地备份归档存放根目录
@@ -50,18 +50,73 @@ LOGFILE="/home/backups/backup.log"     # 备份操作日志输出路径
 
 # --- 备份文件与目录清单 ---
 BACKUP=(
+    # --- 1. 系统核心与网络配置 (重装后恢复联网与挂载必需) ---
+    "/etc/hostname"
+    "/etc/hosts"
+    "/etc/netplan"
+    "/etc/fstab"
+    "/etc/environment"
+    "/etc/env_addon"
+    "/etc/sudoers.d"
+
+    # --- 2. 定时任务与调度 (包含 root 运维与自动化定时任务) ---
+    "/etc/crontab"
+    "/var/spool/cron/crontabs"
+    "/etc/cron.d"
+
+    # --- 3. 用户环境与 Shell 配置 ---
+    "/root/.bashrc"
+    "/root/.profile"
+    "/root/.vimrc"
+    "/home/marco/.bashrc"
+    "/home/marco/.profile"
+    "/home/marco/.vimrc"
+
+    # --- 4. 自定义脚本与运维代码库 (含备份脚本与日常工具) ---
+    "/home/script/script"
+    "/home/script/HouseInfo/gethouseinfo.sh"
+    "/home/script/HouseInfo/main.py"
+    "/home/script/HouseInfo/image_cache.json"
+    "/home/script/HouseInfo/requirements.txt"
+    "/home/marco/.openclaw/openclaw.json"
+    "/home/marco/.openclaw/workspace"
+
+    # --- 5. 系统服务与自定义 Unit (包含 drop-in 与自建 systemd 服务) ---
+    "/etc/systemd/system"
+    "/usr/lib/systemd/system/aria2.service"
+    "/usr/lib/systemd/system/frp.service"
+    "/usr/lib/systemd/system/homebridge.service"
+
+    # --- 6. Web 服务器与反向代理 (全站 Nginx 配置) ---
+    "/etc/nginx"
+
+    # --- 7. 代理与内网穿透服务 ---
+    "/usr/local/etc/v2ray"
+    "/opt/frp/frpc.toml"
+
+    # --- 8. 下载与文件共享存储 ---
+    "/opt/aria2/aria2.conf"
+    "/opt/aria2/aria2.session"
+    "/etc/vsftpd.conf"
+    "/etc/samba/smb.conf"
+    "/etc/exports"
+
+    # --- 9. 智能家居与影视索引 (过滤 node_modules 仅备份核心配置与持久化配对数据) ---
+    "/var/lib/homebridge/config.json"
+    "/var/lib/homebridge/auth.json"
+    "/var/lib/homebridge/package.json"
+    "/var/lib/homebridge/.uix-dashboard.json"
+    "/var/lib/homebridge/.uix-secrets"
+    "/var/lib/homebridge/persist"
+    "/var/lib/homebridge/accessories"
+    "/home/marco/.config/Jackett"
+
+    # --- 10. Docker 容器应用配置 ---
     "/opt/docker/study_xxqg/docker-compose.yml"
     "/opt/docker/study_xxqg/config"
-    "/opt/aria2/aria2.conf"
-    "/opt/frp/frpc.toml"
-    "/etc/crontab"
-    "/usr/lib/systemd/system"
-    "/root/.bashrc"
-    "/etc/hostname"
-    "/etc/vsftpd.conf"
-    "/etc/env_addon"
-    "/etc/nginx/conf.d"
-    "/etc/systemd/system"
+
+    # --- 11. 异地组网节点状态 ---
+    "/var/lib/tailscale"
 )
 
 # --- 保留天数与清理策略 ---
