@@ -1,9 +1,10 @@
 import platform
 import os
+import shutil
 import logging
 import datetime
 from os.path import dirname
-from subprocess import Popen, PIPE
+from subprocess import run, PIPE
 
 site = 'blog.niekun.net'
 
@@ -13,7 +14,7 @@ windows_slash = '\\'
 
 macOS_path = '/Users/marconie/Public/GitHub/nie11kun.github.io/'
 linux_path = '/home/www/nie11kun.github.io/'
-linux_log_path = '/var/log/site_morror.log'
+linux_log_path = '/var/log/site_mirror.log'
 linux_slash = '/'
 
 if platform.system() == 'Windows':
@@ -24,75 +25,63 @@ elif platform.system() == 'Darwin':
     path = macOS_path
     slash = linux_slash
     log_path = linux_log_path
-elif platform.system() == 'Linux':
-    path = linux_path
-    slash = linux_slash
-    log_path = linux_log_path
 else:
     path = linux_path
     slash = linux_slash
     log_path = linux_log_path
 
-tempPath = dirname(path)
+# download outside the repo: parent directory of the repo
+tempPath = dirname(path.rstrip(slash))
+sitePath = tempPath + slash + site
 
 logging.basicConfig(filename=log_path, filemode='a', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-logger.info('start mirror site: {}, output directory is {}'.format(site, path))
 
-logger.info('sync remote github io')
-print('sync remote github io')
+def log(msg, error=False):
+    (logger.error if error else logger.info)(msg)
+    print(msg)
 
-cmd = 'cd {} && git checkout . && git pull && git status'.format(path)
-p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-it = iter(p[0].decode("utf-8", 'ignore').split('\n'))
 
-try:
-    while "Your branch is up to date" not in next(it): pass
-except StopIteration:
-    logger.error('pull error')
-    print('pull error')
+def git(*args):
+    p = run(['git', '-C', path] + list(args), stdout=PIPE, stderr=PIPE)
+    if p.returncode != 0:
+        log('git {} failed: {}'.format(' '.join(args), p.stderr.decode('utf-8', 'ignore').strip()), True)
+    return p.returncode == 0
+
+
+log('start mirror site: {}, output directory is {}'.format(site, path))
+
+# remove leftovers from an interrupted run
+shutil.rmtree(sitePath, ignore_errors=True)
+shutil.rmtree(path + site, ignore_errors=True)
+
+log('start download site data')
+p = run('cd {} && wget -m -p -k --no-check-certificate {}'.format(tempPath, site), shell=True, stdout=PIPE, stderr=PIPE)
+
+if 'FINISHED' not in p.stderr.decode('utf-8', 'ignore'):
+    log('download error', True)
 else:
-    logger.info('start download site data')
-    print('start download site data')
+    log('moving new files')
+    os.system('cp -r {} {}'.format(sitePath + slash + '.', path))
+    shutil.rmtree(sitePath, ignore_errors=True)
 
-    cmd = 'cd {} && wget -m -p -k --no-check-certificate {}'.format(tempPath, site)
-    p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-    it = iter(p[1].decode("utf-8", 'ignore').split('\n'))
+    # keep no history: commit a single snapshot on a fresh orphan branch and force push it
+    log('pushing to github io')
+    run(['git', '-C', path, 'branch', '-D', 'snapshot'], stdout=PIPE, stderr=PIPE)
+    ok = git('checkout', '-q', '--orphan', 'snapshot') \
+        and git('add', '-A') \
+        and git('commit', '-q', '-m', str(datetime.datetime.now())) \
+        and git('branch', '-M', 'master') \
+        and git('push', '-f', 'origin', 'master')
 
-    try:
-        while "FINISHED" not in next(it): pass
-    except StopIteration:
-        logger.error('download error')
-        print('download error')
+    if not ok:
+        log('push error', True)
     else:
-        logger.info('moving new files')
-        print('moving new files')
-        tempPath = tempPath + slash + site
-        os.system('cp -r {} {}'.format(tempPath + slash + '.', path))
-        os.system('rm -r {}'.format(tempPath))
+        log('push finished')
 
-        logger.info('pushing to github io')
-        print('pushing to github io')
-
-        cmd = 'cd {} && git add -A && git commit -m "{}" && git push && git status'.format(path, datetime.datetime.now())
-        p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-        it = iter(p[0].decode("utf-8", 'ignore').split('\n'))
-
-        '''
-        file1 = open("/tmp/test", "w")
-        #for line in p[1].decode("utf-8", 'ignore').split('\n'):
-        #    file1.write("{}\n".format(line))
-        file1.write('{}\n'.format(p[0]))
-        file1.write('{}\n'.format(p[1]))
-        file1.close()
-        '''
-
-        try:
-            while "Your branch is up to date" not in next(it): pass
-        except StopIteration:
-            logger.error('push error')
-            print('push error')
-        else:
-            logger.info('push finished')
-            print('push finished')
+        # drop the old snapshots from the local repo
+        log('cleaning local history')
+        git('reflog', 'expire', '--expire=now', '--all')
+        git('-c', 'pack.threads=1', '-c', 'pack.windowMemory=64m', 'gc', '-q', '--prune=now')
+        log('clean finished')
